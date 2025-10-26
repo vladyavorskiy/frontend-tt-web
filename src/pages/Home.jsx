@@ -28,7 +28,7 @@ export default function HomePage() {
   const [user, setUser] = useState({ username: '', id: null });
   const [error, setError] = useState('');
   const [isAuthChecked, setIsAuthChecked] = useState(false);
-  const [isRegisterMode, setIsRegisterMode] = useState(true);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authData, setAuthData] = useState({ username: '', password: '' });
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function HomePage() {
     sessionStorage.removeItem('activeRoom');
     setUser({ username: '', id: null });
     setIsAuthChecked(true);
-    setIsRegisterMode(true);
+    setIsRegisterMode(false);
   };
 
   const saveNameToSession = () => {
@@ -202,46 +202,47 @@ export default function HomePage() {
   if (!Cookies.get('token') && isAuthChecked) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded shadow">
-          <h1 className="text-xl font-bold mb-4">
-            {isRegisterMode ? 'Регистрация' : 'Вход'}
-          </h1>
+  <div className="w-full max-w-md p-8 bg-white rounded shadow">
+    <h1 className="text-xl font-bold mb-4">
+      {isRegisterMode ? 'Регистрация' : 'Вход'}
+    </h1>
 
-          <input
-            type="text"
-            placeholder="Имя пользователя"
-            value={authData.username}
-            onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-            className="w-full p-2 border rounded mb-4"
-          />
-          <input
-            type="password"
-            placeholder="Пароль"
-            value={authData.password}
-            onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-            className="w-full p-2 border rounded mb-4"
-          />
+    <input
+      type="text"
+      placeholder="Имя пользователя"
+      value={authData.username}
+      onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+      className="w-full p-2 border rounded mb-4"
+    />
+    <input
+      type="password"
+      placeholder="Пароль"
+      value={authData.password}
+      onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+      className="w-full p-2 border rounded mb-4"
+    />
 
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+    {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-          <button
-            onClick={isRegisterMode ? handleRegister : handleLogin}
-            className="w-full py-2 bg-blue-600 text-white rounded mb-2"
-          >
-            {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
-          </button>
+    <button
+      onClick={isRegisterMode ? handleRegister : handleLogin}
+      className="w-full py-2 bg-blue-600 text-white rounded mb-2"
+    >
+      {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
+    </button>
 
-          <p className="text-center text-sm">
-            {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
-            <button
-              onClick={() => setIsRegisterMode(!isRegisterMode)}
-              className="text-blue-600 underline"
-            >
-              {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
-            </button>
-          </p>
-        </div>
-      </div>
+    <p className="text-center text-sm">
+      {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
+      <button
+        onClick={() => setIsRegisterMode(!isRegisterMode)}
+        className="text-blue-600 underline"
+      >
+        {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
+      </button>
+    </p>
+  </div>
+</div>
+
     );
   }
 

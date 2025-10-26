@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import GamePage from './GamePage.jsx';
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 
@@ -14,6 +15,8 @@ export default function RoomPage() {
   const [msg, setMsg] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+
+  const [gameStarted, setGameStarted] = useState(false);
 
   const messagesEndRef = useRef(null);
   const userName = sessionStorage.getItem('userName');
@@ -49,6 +52,11 @@ export default function RoomPage() {
       const map = new Map();
       (data.participants || []).forEach(p => p?.userId && map.set(p.userId, p));
       setParticipantsMap(map);
+    });
+
+    s.on('left_room_success', () => {
+        sessionStorage.removeItem('activeRoom');
+        navigate('/');
     });
 
     s.on('chat_history', (msgs) => {
@@ -110,6 +118,7 @@ export default function RoomPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
+       {!gameStarted ? (
         <div className="max-w-4xl mx-auto bg-white rounded shadow p-6">
           <div className="flex justify-between items-center mb-4">
             <div>
@@ -122,7 +131,8 @@ export default function RoomPage() {
               <p className="text-sm text-gray-500">Участников: {participantsMap.size}</p>
             </div>
             <div className="flex gap-2">
-              {isCreator && !roomClosed && <button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>}
+            {isCreator && !roomClosed && <><button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>
+              <button onClick={startGame} className="px-3 py-2 bg-green-600 text-white rounded">Создать игру</button></>} 
               {!isCreator && !roomClosed && <button onClick={leaveRoom} className="px-3 py-2 bg-yellow-500 text-black rounded">Выйти из комнаты</button>}
               <Link to="/" className="px-3 py-2 border rounded">Главная</Link>
             </div>
@@ -161,6 +171,9 @@ export default function RoomPage() {
             </div>
           )}
         </div>
+        ) : (
+        <GamePage socket={socket} isCreator={isCreator} userId={userId} />
+      )}
     </div>
   );
 }
