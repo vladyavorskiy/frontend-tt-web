@@ -1,12 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, useParams } from 'react-router-dom';
 
-export default function GamePage({ socket, isCreator, userId }) {
+export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
   const [gamePhase, setGamePhase] = useState("setup");
   const [type, setType] = useState("online");
   const [mode, setMode] = useState("solo");
   const [roundTime, setRoundTime] = useState([10, 12, 5]);
   const [wordsPerPlayer, setWordsPerPlayer] = useState(1);
 
+  const navigate = useNavigate();
+  const { id: roomId } = useParams();
+  
   const [userWords, setUserWords] = useState([]);
   const [waitingStatus, setWaitingStatus] = useState({ submitted: 0, total: 0 });
   const [currentWord, setCurrentWord] = useState(null);
@@ -22,9 +26,34 @@ export default function GamePage({ socket, isCreator, userId }) {
   const [selectedExplainer, setSelectedExplainer] = useState(null);
   const [selectedGuesser, setSelectedGuesser] = useState(null);
 
+  const [isCreator, setIsCreator] = useState(false);
+
+  useEffect(() => {
+    setIsCreator(!!isCreatorProp);
+  }, [isCreatorProp]);
+
   const timerRef = useRef(null);
 
   const isCurrentExplainer = activePlayer === userId;
+
+
+  useEffect(() => {
+    if (!socket) return;
+    try {
+      socket.emit('check_role', { roomId, userId });
+    } catch (e) {
+      console.warn('check_role emit failed', e);
+    }
+
+    const onRoleInfo = (data) => {
+      console.log('[GamePage] role_info:', data);
+    };
+    socket.on('role_info', onRoleInfo);
+
+    return () => {
+      socket.off('role_info', onRoleInfo);
+    };
+  }, [socket, roomId, userId]);
 
   const startTimerLocal = (seconds) => {
     if (timerRef.current) {
@@ -177,7 +206,6 @@ export default function GamePage({ socket, isCreator, userId }) {
     }
     socket.emit("submit_words", { words: userWords });
   };
-
 
   const handleReady = () => {
     if (!isCurrentExplainer) return;
@@ -336,26 +364,18 @@ export default function GamePage({ socket, isCreator, userId }) {
   </div>
             <div className="mb-2">
               <h4>Созданные пары:</h4>
-              {/* <ul>
-                {pairs.map((pair, idx) => (
-                  <li key={idx}>
-                    {getPlayerName(pair.explainer.id)} → {getPlayerName(pair.guesser.id)}{" "}
-                    <button onClick={() => setPairs((p) => p.filter((_, i) => i !== idx))} className="ml-2 text-red-600">Удалить</button>
-                  </li>
-                ))}
-              </ul> */}
               <ul>
             {pairs.map((pair, idx) => (
               <li key={idx} className="flex items-center gap-2">
                 {getPlayerName(pair.explainer.id)} → {getPlayerName(pair.guesser.id)}
                 <button onClick={() => setPairs((p) => {
-                  if (idx === 0) return p; // нельзя поднять выше 0
+                  if (idx === 0) return p;
                   const newPairs = [...p];
                   [newPairs[idx - 1], newPairs[idx]] = [newPairs[idx], newPairs[idx - 1]];
                   return newPairs;
                 })} className="px-1 py-0.5 bg-gray-300 rounded">↑</button>
                 <button onClick={() => setPairs((p) => {
-                  if (idx === p.length - 1) return p; // нельзя опустить ниже последнего
+                  if (idx === p.length - 1) return p;
                   const newPairs = [...p];
                   [newPairs[idx + 1], newPairs[idx]] = [newPairs[idx], newPairs[idx + 1]];
                   return newPairs;
@@ -450,12 +470,19 @@ export default function GamePage({ socket, isCreator, userId }) {
         <h2 className="font-bold mb-4">Игра закончена</h2>
         <h3>Счёт:</h3>
         <ul>
-          {Object.entries(scores).map(([id, score]) => <li key={id}>{getPlayerName(Number(id))}: {score}</li>)}
+          {Object.entries(scores).map(([id, score]) => (
+            <li key={id}>{getPlayerName(Number(id))}: {score}</li>
+          ))}
         </ul>
-        <p className="mt-4">Вы можете вернуться в комнату или начать новую игру.</p>
-      
-    
-              </div>
+        <div className="mt-4">
+          <button
+            onClick={() => navigate(`/room/${roomId}`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Вернуться в комнату
+          </button>
+        </div>
+      </div>
     );
   }
 

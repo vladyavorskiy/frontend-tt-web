@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { io } from 'socket.io-client';
+import socket from '../socketClient';
 import GamePage from './GamePage.jsx';
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
@@ -8,14 +8,12 @@ const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 export default function RoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
-  const [socket, setSocket] = useState(null);
-
+  const [socketState, setSocketState] = useState(null);
   const [participantsMap, setParticipantsMap] = useState(new Map());
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
-
   const [gameStarted, setGameStarted] = useState(false);
 
   const messagesEndRef = useRef(null);
@@ -30,61 +28,82 @@ export default function RoomPage() {
       return;
     }
 
-    const s = io(WS_BASE, { autoConnect: false });
-    s.connect();
-    setSocket(s);
+    if (!socket.connected) socket.connect();
+    setSocketState(socket);
 
     const addMessage = (m) => setMessages(prev => [...prev, m]);
 
-    s.on('connect', () => {
-      s.emit('join_room', { roomId, userId, sessionId });
-    });
+    const onConnect = () => {
+      socket.emit('join_room', { roomId, userId, sessionId });
+    };
 
-    s.on('joined', (data) => {
+    const onJoined = (data) => {
+      console.log('[RoomPage] joined', data);
       setIsCreator(!!data.isCreator);
       const map = new Map();
       (data.participants || []).forEach(p => p?.userId && map.set(p.userId, p));
       setParticipantsMap(map);
       sessionStorage.setItem('activeRoom', roomId);
-    });
+    };
 
-    s.on('update_participants', (data) => {
+    const onUpdateParticipants = (data) => {
       const map = new Map();
       (data.participants || []).forEach(p => p?.userId && map.set(p.userId, p));
       setParticipantsMap(map);
-    });
+    };
 
-    s.on('left_room_success', () => {
-        sessionStorage.removeItem('activeRoom');
-        navigate('/');
-    });
+    const onLeftRoomSuccess = () => {
+      sessionStorage.removeItem('activeRoom');
+      navigate('/');
+    };
 
-    s.on('chat_history', (msgs) => {
+    const onChatHistory = (msgs) => {
       const mapped = (msgs || []).map(m => ({
         from: { name: m.sender_name, id: m.user_id },
         text: m.message,
         createdAt: m.created_at || new Date().toISOString()
       }));
       setMessages(mapped);
-    });
+    };
 
-    s.on('receive_message', (data) => {
+    const onReceiveMessage = (data) => {
       addMessage({
         from: data.from || { name: 'Неизвестно' },
         text: data.text,
         createdAt: new Date().toISOString()
       });
-    });
+    };
 
-    s.on('room_closed', () => {
+    const onRoomClosed = () => {
       setRoomClosed(true);
       addMessage({ from: { name: 'Система' }, text: 'Комната закрыта создателем', createdAt: new Date().toISOString() });
       sessionStorage.removeItem('activeRoom');
-    });
+    };
 
-    s.on('game_started', () => setGameStarted(true));
+    const onGameStarted = () => {
+      console.log('[RoomPage] game_started received — navigating to game for room', roomId);
+      setGameStarted(true);
+    };
 
-    return () => s.disconnect();
+    socket.on('connect', onConnect);
+    socket.on('joined', onJoined);
+    socket.on('update_participants', onUpdateParticipants);
+    socket.on('left_room_success', onLeftRoomSuccess);
+    socket.on('chat_history', onChatHistory);
+    socket.on('receive_message', onReceiveMessage);
+    socket.on('room_closed', onRoomClosed);
+    socket.on('game_started', onGameStarted);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('joined', onJoined);
+      socket.off('update_participants', onUpdateParticipants);
+      socket.off('left_room_success', onLeftRoomSuccess);
+      socket.off('chat_history', onChatHistory);
+      socket.off('receive_message', onReceiveMessage);
+      socket.off('room_closed', onRoomClosed);
+      socket.off('game_started', onGameStarted);
+    };
   }, [roomId, navigate, userId, userName, sessionId]);
 
   useEffect(() => {
@@ -113,7 +132,7 @@ export default function RoomPage() {
   const startGame = () => {
     if (!socket || !isCreator) return;
     socket.emit('start_game_request');
-    console.log("start game");
+    console.log("start game (emitted start_game_request) — waiting server events to navigate");
   };
 
   return (
@@ -131,8 +150,10 @@ export default function RoomPage() {
               <p className="text-sm text-gray-500">Участников: {participantsMap.size}</p>
             </div>
             <div className="flex gap-2">
-            {isCreator && !roomClosed && <><button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>
-              <button onClick={startGame} className="px-3 py-2 bg-green-600 text-white rounded">Создать игру</button></>} 
+            {isCreator && !roomClosed && <>
+              <button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>
+              <button onClick={startGame} className="px-3 py-2 bg-green-600 text-white rounded">Создать игру</button>
+            </>}
               {!isCreator && !roomClosed && <button onClick={leaveRoom} className="px-3 py-2 bg-yellow-500 text-black rounded">Выйти из комнаты</button>}
               <Link to="/" className="px-3 py-2 border rounded">Главная</Link>
             </div>
@@ -172,7 +193,7 @@ export default function RoomPage() {
           )}
         </div>
         ) : (
-        <GamePage socket={socket} isCreator={isCreator} userId={userId} />
+        <GamePage socket={socket} userId={userId} isCreator={isCreator} />
       )}
     </div>
   );
