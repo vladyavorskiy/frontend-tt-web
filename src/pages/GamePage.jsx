@@ -103,6 +103,7 @@ export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
         currentWord: cw,
         activePlayerId,
         guesserId,
+        waitingStatus
       } = data;
 
       if (phase) setGamePhase(phase);
@@ -114,6 +115,7 @@ export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
       if (newScores) setScores(newScores);
       if (activePlayerId !== undefined) setActivePlayer(activePlayerId);
       if (guesserId !== undefined) setGuesser(guesserId);
+      if (waitingStatus) setWaitingStatus(waitingStatus);
       if (cw !== undefined) {
         setCurrentWord(cw);
       } else {
@@ -138,7 +140,10 @@ export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
     });
 
     socket.on("waiting_for_players", ({ submitted, total }) => {
-      setWaitingStatus({ submitted, total });
+      setWaitingStatus((prev) => ({
+          submitted: submitted ?? prev.submitted,
+          total: total ?? prev.total,
+        }));
     });
 
     socket.on("next_word", ({ word, scores: newScores }) => {
@@ -194,10 +199,7 @@ export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
 
   useEffect(() => {
     if (gamePhase === "enterWords") {
-      setUserWords(Array(wordsPerPlayer).fill(""));
-      setWaitingStatus((prev) => ({ ...prev, total: players.length || prev.total }));
-    }
-
+      setUserWords(Array(wordsPerPlayer).fill(""));}
   }, [gamePhase, wordsPerPlayer]);
 
   const submitWords = () => {
