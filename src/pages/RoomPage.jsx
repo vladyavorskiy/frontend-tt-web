@@ -8,12 +8,11 @@ const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 export default function RoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
-  const [socketState, setSocketState] = useState(null);
-  const [participantsMap, setParticipantsMap] = useState(new Map());
+  const [participants, setParticipants] = useState([]);
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
-  const [isCreator, setIsCreator] = useState(false);
+  const [isCreator, setIsCreator] = useState(sessionStorage.getItem('isCreator') === 'true');
   const [gameStarted, setGameStarted] = useState(false);
 
   const messagesEndRef = useRef(null);
@@ -29,27 +28,26 @@ export default function RoomPage() {
     }
 
     if (!socket.connected) socket.connect();
-    setSocketState(socket);
+
+    socket.emit('join_room', { roomId, userId, sessionId });
 
     const addMessage = (m) => setMessages(prev => [...prev, m]);
 
-    const onConnect = () => {
-      socket.emit('join_room', { roomId, userId, sessionId });
-    };
+    // const onConnect = () => {
+    //   socket.emit('join_room', { roomId, userId, sessionId });
+    // };
 
     const onJoined = (data) => {
       console.log('[RoomPage] joined', data);
-      setIsCreator(!!data.isCreator);
-      const map = new Map();
-      (data.participants || []).forEach(p => p?.userId && map.set(p.userId, p));
-      setParticipantsMap(map);
+      const creatorFlag = !!data.isCreator;
+      setIsCreator(creatorFlag);
+      sessionStorage.setItem('isCreator', creatorFlag ? 'true' : 'false');
+      setParticipants(data.participants || []);
       sessionStorage.setItem('activeRoom', roomId);
     };
 
     const onUpdateParticipants = (data) => {
-      const map = new Map();
-      (data.participants || []).forEach(p => p?.userId && map.set(p.userId, p));
-      setParticipantsMap(map);
+      setParticipants(data.participants || []);
     };
 
     const onLeftRoomSuccess = () => {
@@ -85,7 +83,7 @@ export default function RoomPage() {
       setGameStarted(true);
     };
 
-    socket.on('connect', onConnect);
+    // socket.on('connect', onConnect);
     socket.on('joined', onJoined);
     socket.on('update_participants', onUpdateParticipants);
     socket.on('left_room_success', onLeftRoomSuccess);
@@ -95,7 +93,7 @@ export default function RoomPage() {
     socket.on('game_started', onGameStarted);
 
     return () => {
-      socket.off('connect', onConnect);
+      // socket.off('connect', onConnect);
       socket.off('joined', onJoined);
       socket.off('update_participants', onUpdateParticipants);
       socket.off('left_room_success', onLeftRoomSuccess);
@@ -137,64 +135,74 @@ export default function RoomPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-       {!gameStarted ? (
-        <div className="max-w-4xl mx-auto bg-white rounded shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-bold">
-                Комната: <span className="text-blue-600 cursor-pointer underline"
-                  title="Кликните, чтобы скопировать"
-                  onClick={() => { navigator.clipboard.writeText(roomId).then(() => alert(`ID комнаты ${roomId} скопирован`)) }}
-                >{roomId}</span>
-              </h2>
-              <p className="text-sm text-gray-500">Участников: {participantsMap.size}</p>
-            </div>
-            <div className="flex gap-2">
+      {!gameStarted ? (
+      <div className="max-w-4xl mx-auto bg-white rounded shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              Комната: <span className="text-blue-600 cursor-pointer underline"
+                title="Кликните, чтобы скопировать"
+                onClick={() => { navigator.clipboard.writeText(roomId); alert(`ID комнаты ${roomId} скопирован`) }}
+              >{roomId}</span>
+            </h2>
+            <p className="text-sm text-gray-500">Участников: {participants.length}</p>
+          </div>
+          <div className="flex gap-2">
             {isCreator && !roomClosed && <>
               <button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>
               <button onClick={startGame} className="px-3 py-2 bg-green-600 text-white rounded">Создать игру</button>
             </>}
-              {!isCreator && !roomClosed && <button onClick={leaveRoom} className="px-3 py-2 bg-yellow-500 text-black rounded">Выйти из комнаты</button>}
-              <Link to="/" className="px-3 py-2 border rounded">Главная</Link>
+            {!isCreator && !roomClosed && <button onClick={leaveRoom} className="px-3 py-2 bg-yellow-500 text-black rounded">Выйти из комнаты</button>}
+            <Link to="/" className="px-3 py-2 border rounded">Главная</Link>
+          </div>
+        </div>
+
+        {roomClosed ? (
+          <div className="text-red-600 text-lg">Комната закрыта создателем.</div>
+        ) : (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2">
+              <div className="border rounded p-3 h-96 overflow-auto bg-gray-50">
+                {messages.map((m, i) => (
+                  <div key={i} className="mb-2">
+                    {m.from?.name === 'Система'
+                      ? <div className="text-sm text-gray-500 italic">{m.text}</div>
+                      : <div><b>{m.from?.name}:</b> {m.text}</div>}
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+              <form onSubmit={sendMessage} className="mt-3 flex gap-2">
+                <input value={msg} onChange={e => setMsg(e.target.value)} className="flex-1 p-2 border rounded" placeholder="Сообщение..." disabled={roomClosed}/>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded" disabled={roomClosed}>Отправить</button>
+              </form>
+            </div>
+
+            <div className="col-span-1">
+              <div className="border rounded p-3 bg-white">
+                <h3 className="font-semibold mb-2">Участники</h3>
+                <ul className="space-y-2">
+                  {participants.map(p => {
+                    const isCurrentUser = p.userId === userId;
+                    const isRoomCreator = p.userId === (participants.find(x => x.isCreator)?.userId || data?.creatorUserId);
+
+                    return (
+                      <li key={p.sessionId} className={`p-2 border rounded ${isCurrentUser ? 'bg-blue-100 font-semibold' : 'bg-white'}`}>
+                        {p.name}
+                        {isCurrentUser && <span className="text-blue-600"> (Вы)</span>}
+                        {isRoomCreator && <span className="text-green-600"> (Создатель)</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             </div>
           </div>
-
-          {roomClosed ? (
-            <div className="text-red-600 text-lg">Комната закрыта создателем.</div>
-          ) : (
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <div className="border rounded p-3 h-96 overflow-auto bg-gray-50">
-                  {messages.map((m, i) => (
-                    <div key={i} className="mb-2">{m.from?.name === 'Система' ? <div className="text-sm text-gray-500 italic">{m.text}</div> : <div><b>{m.from?.name}:</b> {m.text}</div>}</div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-                <form onSubmit={sendMessage} className="mt-3 flex gap-2">
-                  <input value={msg} onChange={e => setMsg(e.target.value)} className="flex-1 p-2 border rounded" placeholder="Сообщение..." disabled={roomClosed}/>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded" disabled={roomClosed}>Отправить</button>
-                </form>
-              </div>
-
-              <div className="col-span-1">
-                <div className="border rounded p-3 bg-white">
-                  <h3 className="font-semibold mb-2">Участники</h3>
-                  <ul className="space-y-2">
-                    {Array.from(participantsMap.values()).map(p => {
-                      const isCurrentUser = p.userId === userId;
-                      return <li key={p.sessionId} className={`p-2 border rounded ${isCurrentUser ? 'bg-blue-100 font-semibold' : 'bg-white'}`}>
-                        {p.name}{isCurrentUser && <span className="text-blue-600"> (Вы)</span>}{p.userId === userId && isCreator && <span className="text-green-600"> (Создатель)</span>}
-                      </li>
-                    })}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        ) : (
+        )}
+      </div>
+       ) : (
         <GamePage socket={socket} userId={userId} isCreator={isCreator} />
-      )}
+       )}
     </div>
   );
 }
