@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import ProfileModal from './ProfileModal';
+import socket from '../socketClient';
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [authData, setAuthData] = useState({ username: '', password: '' });
+  const [activeRoom, setActiveRoom] = useState(sessionStorage.getItem('activeRoom') || '');
 
   useEffect(() => {
     const token = Cookies.get('token');
@@ -55,6 +57,30 @@ export default function HomePage() {
     }
   };
 
+  const checkActiveRoom = (userId) => {
+  if (!userId) return;
+  if (!socket.connected) socket.connect();
+  socket.emit('check_active_room', { userId });
+};
+
+  useEffect(() => {
+    if (!user?.id) return;
+    checkActiveRoom(user.id);
+
+    const handler = (data) => {
+      if (data?.roomId) {
+        sessionStorage.setItem('activeRoom', data.roomId);
+        setActiveRoom(data.roomId);
+      } else {
+        sessionStorage.removeItem('activeRoom');
+        setActiveRoom('');
+      }
+    };
+
+    socket.on('active_room_info', handler);
+    return () => socket.off('active_room_info', handler);
+  }, [user?.id]);
+
   const handleRegister = async () => {
     try {
       const res = await fetch(`${API}/api/register`, {
@@ -71,6 +97,7 @@ export default function HomePage() {
       setUser(data.user);
       setName(data.user.username);
       setIsAuthChecked(true);
+      checkActiveRoom(data.user.id);
     } catch (err) {
       setError(err.message);
     }
@@ -92,6 +119,7 @@ export default function HomePage() {
       setUser(data.user);
       setName(data.user.username);
       setIsAuthChecked(true);
+      checkActiveRoom(data.user.id);
     } catch (err) {
       setError(err.message);
     }
@@ -129,29 +157,39 @@ export default function HomePage() {
     }
 
     try {
-      const res = await fetch(`${API}/api/rooms`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creatorUserId, sessionId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка при создании комнаты');
+    const res = await fetch(`${API}/api/rooms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creatorUserId, sessionId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка при создании комнаты');
 
-      sessionStorage.setItem('activeRoom', data.id);
-      navigate(`/room/${data.id}`);
-    } catch (err) {
-      alert(err.message);
-      console.error(err);
-    }
+    sessionStorage.setItem('activeRoom', data.id);
+    navigate(`/room/${data.id}`);
+
+    socket.emit('join_room', { roomId: data.id, userId: Number(creatorUserId), sessionId });
+    console.log('Комната создана и пользователь присоединен' );
+
+  } catch (err) {
+    alert(err.message);
+    console.error(err);
+  }
   };
 
   const joinById = (e) => {
     e.preventDefault();
-    if (!saveNameToSession()) return;
-    if (!roomId.trim()) return alert('Введите ID комнаты');
+  if (!saveNameToSession()) return;
+  if (!roomId.trim()) return alert('Введите ID комнаты');
 
-    sessionStorage.setItem('activeRoom', roomId.trim());
-    navigate(`/room/${roomId.trim()}`);
+  const userId = Number(sessionStorage.getItem('userId'));
+  const sessionId = sessionStorage.getItem('sessionId');
+
+  sessionStorage.setItem('activeRoom', roomId.trim());
+  navigate(`/room/${roomId.trim()}`);
+
+  socket.emit('join_room', { roomId: roomId.trim(), userId, sessionId });
+
   };
 
   const goToActiveRoom = () => {
@@ -259,7 +297,7 @@ export default function HomePage() {
           </button>
         </div>
 
-        {sessionStorage.getItem('activeRoom') && (
+        {activeRoom && (
           <div className="mb-4">
             <button
               onClick={goToActiveRoom}
