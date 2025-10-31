@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import socket from '../socketClient';
-import GamePage from './GamePage.jsx';
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 
@@ -32,10 +31,6 @@ export default function RoomPage() {
     socket.emit('join_room', { roomId, userId, sessionId });
 
     const addMessage = (m) => setMessages(prev => [...prev, m]);
-
-    // const onConnect = () => {
-    //   socket.emit('join_room', { roomId, userId, sessionId });
-    // };
 
     const onJoined = (data) => {
       console.log('[RoomPage] joined', data);
@@ -81,9 +76,11 @@ export default function RoomPage() {
     const onGameStarted = () => {
       console.log('[RoomPage] game_started received — navigating to game for room', roomId);
       setGameStarted(true);
+      navigate(`/room/${roomId}/game`, {
+        state: { userId, isCreator },
+      });
     };
 
-    // socket.on('connect', onConnect);
     socket.on('joined', onJoined);
     socket.on('update_participants', onUpdateParticipants);
     socket.on('left_room_success', onLeftRoomSuccess);
@@ -93,7 +90,6 @@ export default function RoomPage() {
     socket.on('game_started', onGameStarted);
 
     return () => {
-      // socket.off('connect', onConnect);
       socket.off('joined', onJoined);
       socket.off('update_participants', onUpdateParticipants);
       socket.off('left_room_success', onLeftRoomSuccess);
@@ -201,7 +197,7 @@ export default function RoomPage() {
         )}
       </div>
        ) : (
-        <GamePage socket={socket} userId={userId} isCreator={isCreator} />
+         <p className="text-center mt-6">Переход к игре...</p>
        )}
     </div>
   );

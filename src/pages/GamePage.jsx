@@ -1,15 +1,19 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import socket from '../socketClient';
 
-export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
+export default function GamePage() {
+  const navigate = useNavigate();
+  const { id: roomId } = useParams();
+  const location = useLocation();
+
+  const { userId, isCreator } = location.state || {};
+
   const [gamePhase, setGamePhase] = useState("setup");
   const [type, setType] = useState("online");
   const [mode, setMode] = useState("solo");
   const [roundTime, setRoundTime] = useState([10, 12, 5]);
   const [wordsPerPlayer, setWordsPerPlayer] = useState(1);
-
-  const navigate = useNavigate();
-  const { id: roomId } = useParams();
   
   const [userWords, setUserWords] = useState([]);
   const [waitingStatus, setWaitingStatus] = useState({ submitted: 0, total: 0 });
@@ -25,12 +29,6 @@ export default function GamePage({ socket, userId, isCreator: isCreatorProp }) {
   const [scores, setScores] = useState({});
   const [selectedExplainer, setSelectedExplainer] = useState(null);
   const [selectedGuesser, setSelectedGuesser] = useState(null);
-
-  const [isCreator, setIsCreator] = useState(false);
-
-  useEffect(() => {
-    setIsCreator(!!isCreatorProp);
-  }, [isCreatorProp]);
 
   const timerRef = useRef(null);
 
