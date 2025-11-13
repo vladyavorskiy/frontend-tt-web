@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import socket from '../socketClient';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { CopyIcon, MicIcon, SettingsIcon, SendIcon } from "lucide-react";
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 
@@ -126,83 +133,238 @@ export default function RoomPage() {
   const startGame = () => {
     if (!socket || !isCreator) return;
     socket.emit('start_game_request');
-    console.log("start game (emitted start_game_request) — waiting server events to navigate");
+    console.log('[RoomPage] startGame — emitted start_game_request');
+    console.log(socket, isCreator);
   };
 
+
+
+
+const copyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    alert(`ID комнаты ${roomId} скопирован`);
+  };
+
+  if (gameStarted) {
+    return <p className="text-center mt-6">Переход к игре...</p>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      {!gameStarted ? (
-      <div className="max-w-4xl mx-auto bg-white rounded shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-bold">
-              Комната: <span className="text-blue-600 cursor-pointer underline"
-                title="Кликните, чтобы скопировать"
-                onClick={() => { navigator.clipboard.writeText(roomId); alert(`ID комнаты ${roomId} скопирован`) }}
-              >{roomId}</span>
-            </h2>
-            <p className="text-sm text-gray-500">Участников: {participants.length}</p>
-          </div>
-          <div className="flex gap-2">
-            {isCreator && !roomClosed && <>
-              <button onClick={deleteRoom} className="px-3 py-2 bg-red-600 text-white rounded">Удалить комнату</button>
-              <button onClick={startGame} className="px-3 py-2 bg-green-600 text-white rounded">Создать игру</button>
-            </>}
-            {!isCreator && !roomClosed && <button onClick={leaveRoom} className="px-3 py-2 bg-yellow-500 text-black rounded">Выйти из комнаты</button>}
-            <Link to="/" className="px-3 py-2 border rounded">Главная</Link>
-          </div>
+    <main className="flex flex-col w-full items-start bg-gray-100 min-h-screen">
+      <div className="flex flex-col items-start pt-4 px-4 md:px-80 w-full">
+        <div className="flex flex-col max-w-screen-xl items-start w-full mx-auto">
+          
+          <header className="flex flex-wrap items-center justify-between gap-4 pt-0 pb-4 px-0 w-full bg-transparent border-b border-gray-200">
+            <div className="inline-flex items-center gap-4">
+              {/* <div className="flex flex-col w-8 h-8 items-start">
+                <img
+                  className="w-8 h-8"
+                  alt="Component"
+                  src="https://c.animaapp.com/mhgp0f993ciU7W/img/component-1.svg"
+                />
+              </div> */}
+
+              <div className="inline-flex flex-col items-start">
+                <h1 className="flex items-center justify-center w-fit font-semibold text-xl text-gray-900">
+                  
+                </h1>
+              </div>
+            </div>
+
+            <div className="inline-flex flex-wrap items-center gap-2">
+              {isCreator && !roomClosed && (
+                <Button 
+                  onClick={startGame}
+                  className="min-w-[84px] h-10 px-4 py-0 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Начать игру
+                </Button>
+              )}
+              
+              {!isCreator && !roomClosed && (
+                <Button 
+                  onClick={leaveRoom}
+                  variant="outline"
+                  className="min-w-[84px] h-10 px-4 py-0 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold text-sm transition-colors"
+                >
+                  Выйти
+                </Button>
+              )}
+              
+              {isCreator && !roomClosed && (
+                <Button 
+                  onClick={deleteRoom}
+                  className="min-w-[84px] h-10 px-4 py-0 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Удалить комнату
+                </Button>
+              )}
+
+              <Link to="/">
+                <Button
+                  variant="outline"
+                  className="h-10 px-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl border-gray-300 font-bold text-sm transition-colors"
+                >
+                  Главная
+                </Button>
+              </Link>
+            </div>
+          </header>
+
+          <section className="pt-6 pb-0 px-0 flex flex-col items-start w-full">
+            <div className="flex flex-col items-start gap-1 w-full">
+              <div className="flex items-center gap-2 w-full">
+                <h1 className="font-bold text-2xl text-gray-900">
+                  Комната: {roomId}
+                </h1>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-auto w-auto p-0.5 hover:bg-transparent transition-opacity"
+                  aria-label="Copy room code"
+                  onClick={copyRoomId}
+                >
+                  <CopyIcon className="w-4 h-4 text-gray-900" />
+                </Button>
+              </div>
+
+              <div className="flex flex-col items-start w-full">
+                <p className="text-gray-600 text-base">
+                  Участники: {participants.length}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {roomClosed ? (
+            <div className="w-full text-center py-8">
+              <div className="text-red-600 text-lg font-semibold">Комната закрыта создателем.</div>
+            </div>
+          ) : (
+            <section className="flex flex-col items-start pt-6 pb-0 px-0 w-full">
+              <div className="flex flex-col lg:flex-row items-start justify-center gap-8 w-full">
+                
+                {/* Chat Card */}
+                <Card className="flex-1 max-w-full lg:max-w-[842.66px] bg-white rounded-2xl border border-gray-200">
+                  <CardHeader className="pt-4 pb-4 px-6 border-b border-gray-200">
+                    <CardTitle className="font-semibold text-lg text-gray-900">
+                      Чат
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="p-0">
+                    <ScrollArea className="h-[360px] p-6">
+                      <div className="flex flex-col gap-4">
+                        {messages.map((m, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="bg-blue-100 text-blue-800">
+                                {(m.from?.name || 'U').charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              {m.from?.name === 'Система' ? (
+                                <div className="text-sm text-gray-500 italic">{m.text}</div>
+                              ) : (
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-gray-900">{m.from?.name}</span>
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(m.createdAt).toLocaleTimeString('ru-RU', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-700 mt-1">{m.text}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    </ScrollArea>
+
+                    <div className="flex flex-col items-start pt-4 pb-4 px-4 border-t border-gray-200">
+                      <form onSubmit={sendMessage} className="flex items-center justify-center w-full relative">
+                        <Input
+                          value={msg}
+                          onChange={e => setMsg(e.target.value)}
+                          placeholder="Сообщение..."
+                          className="h-12 pl-4 pr-12 py-3.5 bg-gray-50 rounded-xl border border-gray-300"
+                          disabled={roomClosed}
+                        />
+                        <button 
+                          type="submit"
+                          className="flex w-8 h-8 absolute top-2 right-2 rounded-md items-center justify-center hover:bg-gray-100 transition-colors"
+                          disabled={roomClosed}
+                        >
+                          <SendIcon className="w-4 h-4 text-gray-900" />
+                        </button>
+                      </form>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="w-full lg:w-[405.34px] bg-white rounded-2xl border border-gray-200">
+                  <CardHeader className="pt-4 pb-4 px-6 border-b border-gray-200">
+                    <CardTitle className="font-semibold text-lg text-gray-900">
+                      Участники
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="p-4">
+                    <div className="flex flex-col gap-3">
+                      {participants.map(p => {
+                        const isCurrentUser = p.userId === userId;
+                        const isRoomCreator = p.isCreator;
+
+                        return (
+                          <div
+                            key={p.sessionId}
+                            className={`flex items-center justify-between p-3 rounded-xl ${
+                              isRoomCreator ? "bg-blue-50" : ""
+                            }`}
+                          >
+                            <div className="inline-flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarFallback className={
+                                  isCurrentUser ? "bg-green-100 text-green-800" : 
+                                  isRoomCreator ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                                }>
+                                  {(p.name || 'U').charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-semibold text-gray-900">
+                                {p.name}
+                              </span>
+                            </div>
+
+                            <div className="flex gap-1">
+                              {isCurrentUser && (
+                                <Badge className="bg-green-100 text-green-800 px-2 py-1 text-xs">
+                                  Вы
+                                </Badge>
+                              )}
+                              {isRoomCreator && (
+                                <Badge className="bg-blue-100 text-blue-800 px-2 py-1 text-xs">
+                                  Создатель
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
         </div>
-
-        {roomClosed ? (
-          <div className="text-red-600 text-lg">Комната закрыта создателем.</div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
-              <div className="border rounded p-3 h-96 overflow-auto bg-gray-50">
-                {messages.map((m, i) => (
-                  <div key={i} className="mb-2">
-                    {m.from?.name === 'Система'
-                      ? <div className="text-sm text-gray-500 italic">{m.text}</div>
-                      : <div><b>{m.from?.name}:</b> {m.text}</div>}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-              <form onSubmit={sendMessage} className="mt-3 flex gap-2">
-                <input value={msg} onChange={e => setMsg(e.target.value)} className="flex-1 p-2 border rounded" placeholder="Сообщение..." disabled={roomClosed}/>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded" disabled={roomClosed}>Отправить</button>
-              </form>
-            </div>
-
-            <div className="col-span-1">
-              <div className="border rounded p-3 bg-white">
-                <h3 className="font-semibold mb-2">Участники</h3>
-                <ul className="space-y-2">
-                  {participants.map(p => {
-                    const isCurrentUser = p.userId === userId;
-                    const isRoomCreator = p.userId === (participants.find(x => x.isCreator)?.userId || data?.creatorUserId);
-
-                    return (
-                      <li key={p.sessionId} className={`p-2 border rounded ${isCurrentUser ? 'bg-blue-100 font-semibold' : 'bg-white'}`}>
-                        {p.name}
-                        {isCurrentUser && <span className="text-blue-600"> (Вы)</span>}
-                        {isRoomCreator && <span className="text-green-600"> (Создатель)</span>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-       ) : (
-         <p className="text-center mt-6">Переход к игре...</p>
-       )}
-    </div>
+    </main>
   );
 }
-
-
-
-
