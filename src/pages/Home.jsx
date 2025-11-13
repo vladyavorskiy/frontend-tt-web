@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Cookies from 'js-cookie';
-import ProfileModal from './ProfileModal';
-import socket from '../socketClient';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
+import socket from "../socketClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import ProfileModal from "./ProfileModal";
+import { cn } from "@/lib/utils";
 
-const API = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 
 function ensureSessionId() {
   if (!sessionStorage.getItem('sessionId')) {
@@ -235,119 +241,144 @@ export default function HomePage() {
   }
 };
 
-
-
-  if (!Cookies.get('token') && isAuthChecked) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-  <div className="w-full max-w-md p-8 bg-white rounded shadow">
-    <h1 className="text-xl font-bold mb-4">
-      {isRegisterMode ? 'Регистрация' : 'Вход'}
-    </h1>
-
-    <input
-      type="text"
-      placeholder="Имя пользователя"
-      value={authData.username}
-      onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-      className="w-full p-2 border rounded mb-4"
-    />
-    <input
-      type="password"
-      placeholder="Пароль"
-      value={authData.password}
-      onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-      className="w-full p-2 border rounded mb-4"
-    />
-
-    {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-    <button
-      onClick={isRegisterMode ? handleRegister : handleLogin}
-      className="w-full py-2 bg-blue-600 text-white rounded mb-2"
-    >
-      {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
-    </button>
-
-    <p className="text-center text-sm">
-      {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
-      <button
-        onClick={() => setIsRegisterMode(!isRegisterMode)}
-        className="text-blue-600 underline"
-      >
-        {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
-      </button>
-    </p>
-  </div>
-</div>
-
-    );
-  }
-
+if (!Cookies.get('token') && isAuthChecked) {
   return (
     <div className="h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-xl p-8 bg-white rounded-lg shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Виртуальные комнаты</h1>
-          <button
-            onClick={() => setIsProfileOpen(true)}
-            className="text-sm text-blue-600 underline"
-          >
-            Профиль
-          </button>
-        </div>
+      <div className="flex flex-col max-w-lg w-full items-start gap-4">
+        
+        <Card className="w-full rounded-2xl shadow-lg">
+          <CardHeader className="gap-2 pb-6 text-center">
+            <CardTitle className="text-2xl font-bold">
+              Добро пожаловать
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              {isRegisterMode ? 'Создайте аккаунт' : 'Войдите, чтобы продолжить'}
+            </CardDescription>
+          </CardHeader>
 
-        {activeRoom && (
-          <div className="mb-4">
-            <button
-              onClick={goToActiveRoom}
-              className="w-full py-2 bg-purple-600 text-white rounded"
+          <CardContent className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="username">Имя</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Введите имя"
+                value={authData.username}
+                onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Пароль</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Введите пароль"
+                value={authData.password}
+                onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+              />
+            </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <Button 
+              onClick={isRegisterMode ? handleRegister : handleLogin}
+              className="w-full"
             >
-              Перейти в активную комнату
-            </button>
-          </div>
-        )}
+              {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
+            </Button>
 
-        <form onSubmit={createRoom} className="mb-4">
-          <button
-            type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded"
-          >
-            Создать комнату
-          </button>
-        </form>
-
-        <div className="mt-6 border-t pt-6">
-          <h2 className="font-semibold mb-2">Присоединиться по ID комнаты</h2>
-          <form onSubmit={joinById} className="flex gap-2">
-            <input
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              placeholder="ID комнаты"
-              className="flex-1 p-2 border rounded"
-            />
-            <button className="px-4 py-2 bg-green-600 text-white rounded">
-              Присоединиться
-            </button>
-          </form>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="mt-6 w-full py-2 bg-red-600 text-white rounded"
-        >
-          Выйти из профиля
-        </button>
+            <div className="flex flex-col items-center w-full">
+              <span className="text-sm">
+                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
+              </span>
+              <button 
+                onClick={() => setIsRegisterMode(!isRegisterMode)}
+                className="text-sm text-blue-600 hover:underline transition-all"
+              >
+                {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {isProfileOpen && (
-        <ProfileModal
-          isOpen={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          user={user}
-          onSave={updateProfile}
-        />
-      )}
     </div>
   );
+}
+
+return (
+  <div className="h-screen flex items-center justify-center bg-gray-50">
+    <div className="flex flex-col max-w-lg w-full items-start gap-16">
+      <Card className="w-full rounded-2xl shadow-lg">
+        <CardContent className="p-8">
+          <div className="flex flex-col gap-2 mb-6">
+            <h2 className="text-2xl font-bold">
+              Добро пожаловать, {name}!
+            </h2>
+          </div>
+          
+          <Button
+            onClick={() => setIsProfileOpen(true)}
+            variant="outline"
+            className="mb-6"
+          >
+            Профиль
+          </Button>
+
+          <Button 
+            onClick={createRoom}
+            className="w-full mb-6"
+          >
+            Создать комнату
+          </Button>
+
+          <div className="relative mb-6">
+            <Separator />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2">
+            </div>
+          </div>
+
+          <div className="flex items-end gap-3 mb-6">
+            <div className="flex-1 flex flex-col gap-2">
+              <Label htmlFor="roomId">ID комнаты</Label>
+              <Input
+                id="roomId"
+                type="text"
+                placeholder="Введите ID комнаты"
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+              />
+            </div>
+
+            <Button 
+              onClick={joinById}
+              variant="outline"
+            >
+              Присоединиться
+            </Button>
+          </div>
+
+          {activeRoom && (
+            <Button 
+              onClick={goToActiveRoom}
+              variant="secondary"
+              className="w-full mb-6"
+            >
+              Перейти в активную комнату
+            </Button>
+          )}
+
+          <div className="flex flex-col items-center pt-4 border-t">
+            <Button 
+              onClick={handleLogout} 
+              variant="ghost"
+            >
+              Выйти из аккаунта
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+);
 }
