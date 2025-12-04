@@ -1,0 +1,370 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import socket from '../socketClient';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { CopyIcon, MicIcon, SettingsIcon, SendIcon } from "lucide-react";
+
+const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
+
+export default function RoomPage() {
+  const { id: roomId } = useParams();
+  const navigate = useNavigate();
+  const [participants, setParticipants] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [msg, setMsg] = useState('');
+  const [roomClosed, setRoomClosed] = useState(false);
+  const [isCreator, setIsCreator] = useState(sessionStorage.getItem('isCreator') === 'true');
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const messagesEndRef = useRef(null);
+  const userName = sessionStorage.getItem('userName');
+  const userId = Number(sessionStorage.getItem('userId'));
+  const sessionId = sessionStorage.getItem('sessionId');
+
+  useEffect(() => {
+    if (!userName || !userId) {
+      alert('Сначала войдите в аккаунт на главной странице.');
+      navigate('/');
+      return;
+    }
+
+    if (!socket.connected) socket.connect();
+
+    socket.emit('join_room', { roomId, userId, sessionId });
+
+    const addMessage = (m) => setMessages(prev => [...prev, m]);
+
+    const onJoined = (data) => {
+      console.log('[RoomPage] joined', data);
+      const creatorFlag = !!data.isCreator;
+      setIsCreator(creatorFlag);
+      sessionStorage.setItem('isCreator', creatorFlag ? 'true' : 'false');
+      setParticipants(data.participants || []);
+      sessionStorage.setItem('activeRoom', roomId);
+    };
+
+    const onUpdateParticipants = (data) => {
+      setParticipants(data.participants || []);
+    };
+
+    const onLeftRoomSuccess = () => {
+      sessionStorage.removeItem('activeRoom');
+      navigate('/');
+    };
+
+    const onChatHistory = (msgs) => {
+      const mapped = (msgs || []).map(m => ({
+        from: { name: m.sender_name, id: m.user_id },
+        text: m.message,
+        createdAt: m.created_at || new Date().toISOString()
+      }));
+      setMessages(mapped);
+    };
+
+    const onReceiveMessage = (data) => {
+      addMessage({
+        from: data.from || { name: 'Неизвестно' },
+        text: data.text,
+        createdAt: new Date().toISOString()
+      });
+    };
+
+    const onRoomClosed = () => {
+      setRoomClosed(true);
+      addMessage({ from: { name: 'Система' }, text: 'Комната закрыта создателем', createdAt: new Date().toISOString() });
+      sessionStorage.removeItem('activeRoom');
+    };
+
+    const onGameStarted = () => {
+      console.log('[RoomPage] game_started received — navigating to game for room', roomId);
+      setGameStarted(true);
+      navigate(`/room/${roomId}/game`, {
+        state: { userId, isCreator },
+      });
+    };
+
+    socket.on('joined', onJoined);
+    socket.on('update_participants', onUpdateParticipants);
+    socket.on('left_room_success', onLeftRoomSuccess);
+    socket.on('chat_history', onChatHistory);
+    socket.on('receive_message', onReceiveMessage);
+    socket.on('room_closed', onRoomClosed);
+    socket.on('game_started', onGameStarted);
+
+    return () => {
+      socket.off('joined', onJoined);
+      socket.off('update_participants', onUpdateParticipants);
+      socket.off('left_room_success', onLeftRoomSuccess);
+      socket.off('chat_history', onChatHistory);
+      socket.off('receive_message', onReceiveMessage);
+      socket.off('room_closed', onRoomClosed);
+      socket.off('game_started', onGameStarted);
+    };
+  }, [roomId, navigate, userId, userName, sessionId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!msg.trim() || roomClosed || !socket) return;
+    socket.emit('send_message', msg);
+    setMsg('');
+  };
+
+  const leaveRoom = () => {
+    if (!socket) return;
+    if (!window.confirm('Вы хотите выйти из комнаты?')) return;
+    socket.emit('leave_room_request');
+  };
+
+  const deleteRoom = () => {
+    if (!socket) return;
+    if (!window.confirm('Вы точно хотите удалить комнату?')) return;
+    socket.emit('delete_room');
+  };
+
+  const startGame = () => {
+    if (!socket || !isCreator) return;
+    socket.emit('start_game_request');
+    console.log('[RoomPage] startGame — emitted start_game_request');
+    console.log(socket, isCreator);
+  };
+
+
+
+
+const copyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    alert(`ID комнаты ${roomId} скопирован`);
+  };
+
+  if (gameStarted) {
+    return <p className="text-center mt-6">Переход к игре...</p>;
+  }
+
+  return (
+    <main className="flex flex-col w-full items-start bg-gray-100 min-h-screen">
+      <div className="flex flex-col items-start pt-4 px-4 md:px-80 w-full">
+        <div className="flex flex-col max-w-screen-xl items-start w-full mx-auto">
+          
+          <header className="flex flex-wrap items-center justify-between gap-4 pt-0 pb-4 px-0 w-full bg-transparent border-b border-gray-200">
+            <div className="inline-flex items-center gap-4">
+              {/* <div className="flex flex-col w-8 h-8 items-start">
+                <img
+                  className="w-8 h-8"
+                  alt="Component"
+                  src="https://c.animaapp.com/mhgp0f993ciU7W/img/component-1.svg"
+                />
+              </div> */}
+
+              <div className="inline-flex flex-col items-start">
+                <h1 className="flex items-center justify-center w-fit font-semibold text-xl text-gray-900">
+                  
+                </h1>
+              </div>
+            </div>
+
+            <div className="inline-flex flex-wrap items-center gap-2">
+              {isCreator && !roomClosed && (
+                <Button 
+                  onClick={startGame}
+                  className="min-w-[84px] h-10 px-4 py-0 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Начать игру
+                </Button>
+              )}
+              
+              {!isCreator && !roomClosed && (
+                <Button 
+                  onClick={leaveRoom}
+                  variant="outline"
+                  className="min-w-[84px] h-10 px-4 py-0 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold text-sm transition-colors"
+                >
+                  Выйти
+                </Button>
+              )}
+              
+              {isCreator && !roomClosed && (
+                <Button 
+                  onClick={deleteRoom}
+                  className="min-w-[84px] h-10 px-4 py-0 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition-colors"
+                >
+                  Удалить комнату
+                </Button>
+              )}
+
+              <Link to="/">
+                <Button
+                  variant="outline"
+                  className="h-10 px-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl border-gray-300 font-bold text-sm transition-colors"
+                >
+                  Главная
+                </Button>
+              </Link>
+            </div>
+          </header>
+
+          <section className="pt-6 pb-0 px-0 flex flex-col items-start w-full">
+            <div className="flex flex-col items-start gap-1 w-full">
+              <div className="flex items-center gap-2 w-full">
+                <h1 className="font-bold text-2xl text-gray-900">
+                  Комната: {roomId}
+                </h1>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-auto w-auto p-0.5 hover:bg-transparent transition-opacity"
+                  aria-label="Copy room code"
+                  onClick={copyRoomId}
+                >
+                  <CopyIcon className="w-4 h-4 text-gray-900" />
+                </Button>
+              </div>
+
+              <div className="flex flex-col items-start w-full">
+                <p className="text-gray-600 text-base">
+                  Участники: {participants.length}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {roomClosed ? (
+            <div className="w-full text-center py-8">
+              <div className="text-red-600 text-lg font-semibold">Комната закрыта создателем.</div>
+            </div>
+          ) : (
+            <section className="flex flex-col items-start pt-6 pb-0 px-0 w-full">
+              <div className="flex flex-col lg:flex-row items-start justify-center gap-8 w-full">
+                
+                {/* Chat Card */}
+                <Card className="flex-1 max-w-full lg:max-w-[842.66px] bg-white rounded-2xl border border-gray-200">
+                  <CardHeader className="pt-4 pb-4 px-6 border-b border-gray-200">
+                    <CardTitle className="font-semibold text-lg text-gray-900">
+                      Чат
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="p-0">
+                    <ScrollArea className="h-[360px] p-6">
+                      <div className="flex flex-col gap-4">
+                        {messages.map((m, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="bg-blue-100 text-blue-800">
+                                {(m.from?.name || 'U').charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              {m.from?.name === 'Система' ? (
+                                <div className="text-sm text-gray-500 italic">{m.text}</div>
+                              ) : (
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-gray-900">{m.from?.name}</span>
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(m.createdAt).toLocaleTimeString('ru-RU', { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-700 mt-1">{m.text}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    </ScrollArea>
+
+                    <div className="flex flex-col items-start pt-4 pb-4 px-4 border-t border-gray-200">
+                      <form onSubmit={sendMessage} className="flex items-center justify-center w-full relative">
+                        <Input
+                          value={msg}
+                          onChange={e => setMsg(e.target.value)}
+                          placeholder="Сообщение..."
+                          className="h-12 pl-4 pr-12 py-3.5 bg-gray-50 rounded-xl border border-gray-300"
+                          disabled={roomClosed}
+                        />
+                        <button 
+                          type="submit"
+                          className="flex w-8 h-8 absolute top-2 right-2 rounded-md items-center justify-center hover:bg-gray-100 transition-colors"
+                          disabled={roomClosed}
+                        >
+                          <SendIcon className="w-4 h-4 text-gray-900" />
+                        </button>
+                      </form>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="w-full lg:w-[405.34px] bg-white rounded-2xl border border-gray-200">
+                  <CardHeader className="pt-4 pb-4 px-6 border-b border-gray-200">
+                    <CardTitle className="font-semibold text-lg text-gray-900">
+                      Участники
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="p-4">
+                    <div className="flex flex-col gap-3">
+                      {participants.map(p => {
+                        const isCurrentUser = p.userId === userId;
+                        const isRoomCreator = p.isCreator;
+
+                        return (
+                          <div
+                            key={p.sessionId}
+                            className={`flex items-center justify-between p-3 rounded-xl ${
+                              isRoomCreator ? "bg-blue-50" : ""
+                            }`}
+                          >
+                            <div className="inline-flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarFallback className={
+                                  isCurrentUser ? "bg-green-100 text-green-800" : 
+                                  isRoomCreator ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                                }>
+                                  {(p.name || 'U').charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-semibold text-gray-900">
+                                {p.name}
+                              </span>
+                            </div>
+
+                            <div className="flex gap-1">
+                              {isCurrentUser && (
+                                <Badge className="bg-green-100 text-green-800 px-2 py-1 text-xs">
+                                  Вы
+                                </Badge>
+                              )}
+                              {isRoomCreator && (
+                                <Badge className="bg-blue-100 text-blue-800 px-2 py-1 text-xs">
+                                  Создатель
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
