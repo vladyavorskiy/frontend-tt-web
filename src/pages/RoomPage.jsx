@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CopyIcon, MicIcon, SettingsIcon, SendIcon } from "lucide-react";
+import { CopyIcon, MicIcon, SettingsIcon, SendIcon, AlertCircle } from "lucide-react";
 
 const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
 
@@ -20,6 +20,8 @@ export default function RoomPage() {
   const [roomClosed, setRoomClosed] = useState(false);
   const [isCreator, setIsCreator] = useState(sessionStorage.getItem('isCreator') === 'true');
   const [gameStarted, setGameStarted] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState(null);
 
   const messagesEndRef = useRef(null);
   const userName = sessionStorage.getItem('userName');
@@ -46,15 +48,34 @@ export default function RoomPage() {
       sessionStorage.setItem('isCreator', creatorFlag ? 'true' : 'false');
       setParticipants(data.participants || []);
       sessionStorage.setItem('activeRoom', roomId);
+      setLeaving(false);
+      setLeaveError(null);
     };
 
     const onUpdateParticipants = (data) => {
       setParticipants(data.participants || []);
     };
 
-    const onLeftRoomSuccess = () => {
+    const onLeftRoomSuccess = (data) => {
+      console.log('[RoomPage] left_room_success', data);
       sessionStorage.removeItem('activeRoom');
+      setLeaving(false);
+      setLeaveError(null);
+      
+      const name = data.userName || 'Вы';
+      const verb = name === 'Вы' ? 'покинули' : 'покинул(а)';
+
+      alert(`${name} успешно ${verb} комнату`);
+      
       navigate('/');
+    };
+
+    const onLeaveError = (error) => {
+      console.error('[RoomPage] leave_error', error);
+      setLeaving(false);
+      setLeaveError(error.message || 'Неизвестная ошибка');
+      
+      alert(`Ошибка при выходе из комнаты: ${error.message}`);
     };
 
     const onChatHistory = (msgs) => {
@@ -76,8 +97,17 @@ export default function RoomPage() {
 
     const onRoomClosed = () => {
       setRoomClosed(true);
-      addMessage({ from: { name: 'Система' }, text: 'Комната закрыта создателем', createdAt: new Date().toISOString() });
+      addMessage({ 
+        from: { name: 'Система' }, 
+        text: 'Комната закрыта создателем', 
+        createdAt: new Date().toISOString() 
+      });
       sessionStorage.removeItem('activeRoom');
+      
+      setTimeout(() => {
+        alert('Комната была закрыта создателем');
+        navigate('/');
+      }, 1000);
     };
 
     const onGameStarted = () => {
@@ -91,6 +121,7 @@ export default function RoomPage() {
     socket.on('joined', onJoined);
     socket.on('update_participants', onUpdateParticipants);
     socket.on('left_room_success', onLeftRoomSuccess);
+    socket.on('leave_error', onLeaveError);
     socket.on('chat_history', onChatHistory);
     socket.on('receive_message', onReceiveMessage);
     socket.on('room_closed', onRoomClosed);
@@ -100,6 +131,7 @@ export default function RoomPage() {
       socket.off('joined', onJoined);
       socket.off('update_participants', onUpdateParticipants);
       socket.off('left_room_success', onLeftRoomSuccess);
+      socket.off('leave_error', onLeaveError);
       socket.off('chat_history', onChatHistory);
       socket.off('receive_message', onReceiveMessage);
       socket.off('room_closed', onRoomClosed);
@@ -119,14 +151,44 @@ export default function RoomPage() {
   };
 
   const leaveRoom = () => {
-    if (!socket) return;
-    if (!window.confirm('Вы хотите выйти из комнаты?')) return;
+    if (!socket || leaving) return;
+    
+    if (!window.confirm('Вы уверены, что хотите выйти из комнаты?')) return;
+    
+    setLeaving(true);
+    setLeaveError(null);
+    
+    const timeout = setTimeout(() => {
+      if (leaving) {
+        setLeaving(false);
+        alert('Не удалось выйти из комнаты. Проверьте соединение или попробуйте перезагрузить страницу.');
+      }
+    }, 10000);
+    
+    const successHandler = () => {
+      clearTimeout(timeout);
+      setLeaving(false);
+    };
+    
+    const errorHandler = () => {
+      clearTimeout(timeout);
+      setLeaving(false);
+    };
+    
+    socket.once('left_room_success', successHandler);
+    socket.once('leave_error', errorHandler);
+    
     socket.emit('leave_room_request');
+    
+    setTimeout(() => {
+      socket.off('left_room_success', successHandler);
+      socket.off('leave_error', errorHandler);
+    }, 15000);
   };
 
   const deleteRoom = () => {
     if (!socket) return;
-    if (!window.confirm('Вы точно хотите удалить комнату?')) return;
+    if (!window.confirm('Вы точно хотите удалить комнату? Все участники будут выгнаны.')) return;
     socket.emit('delete_room');
   };
 
@@ -134,13 +196,9 @@ export default function RoomPage() {
     if (!socket || !isCreator) return;
     socket.emit('start_game_request');
     console.log('[RoomPage] startGame — emitted start_game_request');
-    console.log(socket, isCreator);
   };
 
-
-
-
-const copyRoomId = () => {
+  const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
     alert(`ID комнаты ${roomId} скопирован`);
   };
@@ -156,17 +214,9 @@ const copyRoomId = () => {
           
           <header className="flex flex-wrap items-center justify-between gap-4 pt-0 pb-4 px-0 w-full bg-transparent border-b border-gray-200">
             <div className="inline-flex items-center gap-4">
-              {/* <div className="flex flex-col w-8 h-8 items-start">
-                <img
-                  className="w-8 h-8"
-                  alt="Component"
-                  src="https://c.animaapp.com/mhgp0f993ciU7W/img/component-1.svg"
-                />
-              </div> */}
-
               <div className="inline-flex flex-col items-start">
                 <h1 className="flex items-center justify-center w-fit font-semibold text-xl text-gray-900">
-                  
+                  TableTime
                 </h1>
               </div>
             </div>
@@ -181,13 +231,14 @@ const copyRoomId = () => {
                 </Button>
               )}
               
-              {!isCreator && !roomClosed && (
+              {!roomClosed && !isCreator && (
                 <Button 
                   onClick={leaveRoom}
                   variant="outline"
-                  className="min-w-[84px] h-10 px-4 py-0 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold text-sm transition-colors"
+                  disabled={leaving}
+                  className="min-w-[84px] h-10 px-4 py-0 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
                 >
-                  Выйти
+                  {leaving ? 'Выходим...' : 'Выйти'}
                 </Button>
               )}
               
@@ -211,6 +262,15 @@ const copyRoomId = () => {
             </div>
           </header>
 
+          {leaveError && (
+            <div className="w-full mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm">Ошибка: {leaveError}</span>
+              </div>
+            </div>
+          )}
+
           <section className="pt-6 pb-0 px-0 flex flex-col items-start w-full">
             <div className="flex flex-col items-start gap-1 w-full">
               <div className="flex items-center gap-2 w-full">
@@ -231,7 +291,7 @@ const copyRoomId = () => {
 
               <div className="flex flex-col items-start w-full">
                 <p className="text-gray-600 text-base">
-                  Участники: {participants.length}
+                  Участники: {participants.length} {leaving && '(выходим...)'}
                 </p>
               </div>
             </div>
@@ -240,6 +300,12 @@ const copyRoomId = () => {
           {roomClosed ? (
             <div className="w-full text-center py-8">
               <div className="text-red-600 text-lg font-semibold">Комната закрыта создателем.</div>
+              <Button 
+                onClick={() => navigate('/')}
+                className="mt-4"
+              >
+                Вернуться на главную
+              </Button>
             </div>
           ) : (
             <section className="flex flex-col items-start pt-6 pb-0 px-0 w-full">
@@ -294,12 +360,12 @@ const copyRoomId = () => {
                           onChange={e => setMsg(e.target.value)}
                           placeholder="Сообщение..."
                           className="h-12 pl-4 pr-12 py-3.5 bg-gray-50 rounded-xl border border-gray-300"
-                          disabled={roomClosed}
+                          disabled={roomClosed || leaving}
                         />
                         <button 
                           type="submit"
                           className="flex w-8 h-8 absolute top-2 right-2 rounded-md items-center justify-center hover:bg-gray-100 transition-colors"
-                          disabled={roomClosed}
+                          disabled={roomClosed || leaving || !msg.trim()}
                         >
                           <SendIcon className="w-4 h-4 text-gray-900" />
                         </button>
@@ -326,7 +392,7 @@ const copyRoomId = () => {
                             key={p.sessionId}
                             className={`flex items-center justify-between p-3 rounded-xl ${
                               isRoomCreator ? "bg-blue-50" : ""
-                            }`}
+                            } ${isCurrentUser ? "border-2 border-green-300" : ""}`}
                           >
                             <div className="inline-flex items-center gap-3">
                               <Avatar className="w-8 h-8">
@@ -357,6 +423,12 @@ const copyRoomId = () => {
                           </div>
                         );
                       })}
+                      
+                      {participants.length === 0 && (
+                        <div className="text-center py-4 text-gray-500">
+                          Нет участников
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
