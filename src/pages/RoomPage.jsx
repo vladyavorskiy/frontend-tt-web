@@ -5,15 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CopyIcon, MicIcon, SettingsIcon, SendIcon, AlertCircle } from "lucide-react";
-
-const WS_BASE = import.meta.env.VITE_WS_BASE || 'http://localhost:4000';
+import { CopyIcon, SendIcon, AlertCircle } from "lucide-react";
 
 export default function RoomPage() {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
+
   const [participants, setParticipants] = useState([]);
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
@@ -28,174 +27,159 @@ export default function RoomPage() {
   const userId = Number(sessionStorage.getItem('userId'));
   const sessionId = sessionStorage.getItem('sessionId');
 
+  // ---- СОЕДИНЕНИЕ И СОБЫТИЯ ----
   useEffect(() => {
+    console.log('[RoomPage] mount, roomId =', roomId);
+
     if (!userName || !userId) {
       alert('Сначала войдите в аккаунт на главной странице.');
       navigate('/');
       return;
     }
 
-    if (!socket.connected) socket.connect();
+    if (!socket.connected) {
+      console.log('[RoomPage] connecting socket...');
+      socket.connect();
+    }
 
+    console.log('[RoomPage] join_room →', { roomId, userId, sessionId });
     socket.emit('join_room', { roomId, userId, sessionId });
 
     const addMessage = (m) => setMessages(prev => [...prev, m]);
 
-    const onJoined = (data) => {
-      console.log('[RoomPage] joined', data);
-      const creatorFlag = !!data.isCreator;
-      setIsCreator(creatorFlag);
-      sessionStorage.setItem('isCreator', creatorFlag ? 'true' : 'false');
-      setParticipants(data.participants || []);
-      sessionStorage.setItem('activeRoom', roomId);
-      setLeaving(false);
-      setLeaveError(null);
-    };
+    const handlers = {
+      joined: (data) => {
+        console.log('[RoomPage] joined:', data);
+        setIsCreator(!!data.isCreator);
+        sessionStorage.setItem('isCreator', data.isCreator ? 'true' : 'false');
+        setParticipants(data.participants || []);
+        sessionStorage.setItem('activeRoom', roomId);
+        setLeaving(false);
+        setLeaveError(null);
+      },
 
-    const onUpdateParticipants = (data) => {
-      setParticipants(data.participants || []);
-    };
+      update_participants: (data) => {
+        console.log('[RoomPage] participants updated:', data.participants);
+        setParticipants(data.participants || []);
+      },
 
-    const onLeftRoomSuccess = (data) => {
-      console.log('[RoomPage] left_room_success', data);
-      sessionStorage.removeItem('activeRoom');
-      setLeaving(false);
-      setLeaveError(null);
-      
-      const name = data.userName || 'Вы';
-      const verb = name === 'Вы' ? 'покинули' : 'покинул(а)';
-
-      alert(`${name} успешно ${verb} комнату`);
-      
-      navigate('/');
-    };
-
-    const onLeaveError = (error) => {
-      console.error('[RoomPage] leave_error', error);
-      setLeaving(false);
-      setLeaveError(error.message || 'Неизвестная ошибка');
-      
-      alert(`Ошибка при выходе из комнаты: ${error.message}`);
-    };
-
-    const onChatHistory = (msgs) => {
-      const mapped = (msgs || []).map(m => ({
-        from: { name: m.sender_name, id: m.user_id },
-        text: m.message,
-        createdAt: m.created_at || new Date().toISOString()
-      }));
-      setMessages(mapped);
-    };
-
-    const onReceiveMessage = (data) => {
-      addMessage({
-        from: data.from || { name: 'Неизвестно' },
-        text: data.text,
-        createdAt: new Date().toISOString()
-      });
-    };
-
-    const onRoomClosed = () => {
-      setRoomClosed(true);
-      addMessage({ 
-        from: { name: 'Система' }, 
-        text: 'Комната закрыта создателем', 
-        createdAt: new Date().toISOString() 
-      });
-      sessionStorage.removeItem('activeRoom');
-      
-      setTimeout(() => {
-        alert('Комната была закрыта создателем');
+      left_room_success: (data) => {
+        console.log('[RoomPage] left_room_success', data);
+        sessionStorage.removeItem('activeRoom');
+        setLeaving(false);
+        setLeaveError(null);
+        alert(`${data.userName || 'Вы'} успешно покинули комнату`);
         navigate('/');
-      }, 1000);
+      },
+
+      leave_error: (error) => {
+        console.error('[RoomPage] leave_error:', error);
+        setLeaving(false);
+        setLeaveError(error.message || 'Неизвестная ошибка');
+        alert(`Ошибка при выходе из комнаты: ${error.message}`);
+      },
+
+      chat_history: (msgs) => {
+        console.log('[RoomPage] chat_history loaded:', msgs.length);
+        const mapped = (msgs || []).map(m => ({
+          from: { name: m.sender_name, id: m.user_id },
+          text: m.message,
+          createdAt: m.created_at || new Date().toISOString()
+        }));
+        setMessages(mapped);
+      },
+
+      receive_message: (data) => {
+        console.log('[RoomPage] receive_message:', data);
+        addMessage({
+          from: data.from || { name: 'Неизвестно' },
+          text: data.text,
+          createdAt: new Date().toISOString()
+        });
+      },
+
+      room_closed: () => {
+        console.warn('[RoomPage] room_closed');
+        setRoomClosed(true);
+        addMessage({ 
+          from: { name: 'Система' }, 
+          text: 'Комната закрыта создателем', 
+          createdAt: new Date().toISOString() 
+        });
+        sessionStorage.removeItem('activeRoom');
+        setTimeout(() => { 
+          alert('Комната была закрыта создателем'); 
+          navigate('/'); 
+        }, 1000);
+      },
+
+      game_started: () => {
+        console.log('[RoomPage] game_started → navigating to game');
+        setGameStarted(true);
+        navigate(`/room/${roomId}/game`, { state: { userId, isCreator } });
+      },
+
+      // игровые события
+      player_ready: (data) => console.log('[RoomPage] player_ready:', data),
+      update_score: (data) => console.log('[RoomPage] update_score:', data),
     };
 
-    const onGameStarted = () => {
-      console.log('[RoomPage] game_started received — navigating to game for room', roomId);
-      setGameStarted(true);
-      navigate(`/room/${roomId}/game`, {
-        state: { userId, isCreator },
-      });
-    };
-
-    socket.on('joined', onJoined);
-    socket.on('update_participants', onUpdateParticipants);
-    socket.on('left_room_success', onLeftRoomSuccess);
-    socket.on('leave_error', onLeaveError);
-    socket.on('chat_history', onChatHistory);
-    socket.on('receive_message', onReceiveMessage);
-    socket.on('room_closed', onRoomClosed);
-    socket.on('game_started', onGameStarted);
+    // Подписка
+    Object.entries(handlers).forEach(([event, handler]) => socket.on(event, handler));
 
     return () => {
-      socket.off('joined', onJoined);
-      socket.off('update_participants', onUpdateParticipants);
-      socket.off('left_room_success', onLeftRoomSuccess);
-      socket.off('leave_error', onLeaveError);
-      socket.off('chat_history', onChatHistory);
-      socket.off('receive_message', onReceiveMessage);
-      socket.off('room_closed', onRoomClosed);
-      socket.off('game_started', onGameStarted);
+      console.log('[RoomPage] unmount — removing listeners');
+      Object.entries(handlers).forEach(([event, handler]) => socket.off(event, handler));
     };
+
   }, [roomId, navigate, userId, userName, sessionId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages]);
+  // ---- СКРОЛЛ ЧАТА ----
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages]);
 
+  // ---- ОТПРАВКА СООБЩЕНИЯ ----
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim() || roomClosed || !socket) return;
-    socket.emit('send_message', msg);
+    console.log('[RoomPage] send_message:', msg);
+    socket.emit('send_message', { text: msg, roomId, userId, sessionId });
     setMsg('');
   };
 
+  // ---- ВЫХОД ----
   const leaveRoom = () => {
     if (!socket || leaving) return;
-    
     if (!window.confirm('Вы уверены, что хотите выйти из комнаты?')) return;
-    
+
+    console.log('[RoomPage] leave_room_request emitted');
     setLeaving(true);
     setLeaveError(null);
-    
+
     const timeout = setTimeout(() => {
-      if (leaving) {
-        setLeaving(false);
-        alert('Не удалось выйти из комнаты. Проверьте соединение или попробуйте перезагрузить страницу.');
-      }
+      console.warn('[RoomPage] leave timeout expired');
+      setLeaving(false);
+      alert('Не удалось выйти из комнаты. Проверьте соединение или перезагрузите страницу.');
     }, 10000);
-    
-    const successHandler = () => {
-      clearTimeout(timeout);
-      setLeaving(false);
-    };
-    
-    const errorHandler = () => {
-      clearTimeout(timeout);
-      setLeaving(false);
-    };
-    
-    socket.once('left_room_success', successHandler);
-    socket.once('leave_error', errorHandler);
-    
+
+    socket.once('left_room_success', () => clearTimeout(timeout));
+    socket.once('leave_error', () => clearTimeout(timeout));
+
     socket.emit('leave_room_request');
-    
-    setTimeout(() => {
-      socket.off('left_room_success', successHandler);
-      socket.off('leave_error', errorHandler);
-    }, 15000);
   };
 
+  // ---- УДАЛЕНИЕ КОМНАТЫ ----
   const deleteRoom = () => {
     if (!socket) return;
     if (!window.confirm('Вы точно хотите удалить комнату? Все участники будут выгнаны.')) return;
+    console.warn('[RoomPage] delete_room emitted');
     socket.emit('delete_room');
   };
 
+  // ---- СТАРТ ИГРЫ ----
   const startGame = () => {
     if (!socket || !isCreator) return;
+    console.log('[RoomPage] start_game_request emitted');
     socket.emit('start_game_request');
-    console.log('[RoomPage] startGame — emitted start_game_request');
   };
 
   const copyRoomId = () => {

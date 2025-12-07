@@ -8,20 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import ProfileModal from "./ProfileModal";
-import { cn } from "@/lib/utils";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 
 function ensureSessionId() {
-  if (!sessionStorage.getItem('sessionId')) {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      sessionStorage.setItem('sessionId', crypto.randomUUID());
-    } else {
-      sessionStorage.setItem(
-        'sessionId',
-        `${Date.now()}-${Math.floor(Math.random() * 100000)}`
-      );
-    }
+  if (!sessionStorage.getItem("sessionId")) {
+    const id = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    sessionStorage.setItem("sessionId", id);
   }
 }
 
@@ -29,20 +24,37 @@ export default function HomePage() {
   ensureSessionId();
   const navigate = useNavigate();
 
-  const [name, setName] = useState(sessionStorage.getItem('userName') || '');
-  const [roomId, setRoomId] = useState('');
+  const [name, setName] = useState(sessionStorage.getItem("userName") || "");
+  const [roomId, setRoomId] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [user, setUser] = useState({ username: '', id: null });
-  const [error, setError] = useState('');
+  const [user, setUser] = useState({ username: "", id: null });
+  const [error, setError] = useState("");
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [authData, setAuthData] = useState({ username: '', password: '' });
-  const [activeRoom, setActiveRoom] = useState(sessionStorage.getItem('activeRoom') || '');
+  const [authData, setAuthData] = useState({ username: "", password: "" });
+  const [activeRoom, setActiveRoom] = useState(sessionStorage.getItem("activeRoom") || "");
 
   useEffect(() => {
-    const token = Cookies.get('token');
+    const token = Cookies.get("token");
     if (token) fetchProfile(token);
     else setIsAuthChecked(true);
+
+    const handleSocketError = (errorMessage) => {
+      console.error("[Home] Socket error:", errorMessage);
+      setError(`Ошибка соединения: ${errorMessage}`);
+    };
+    const handleConnectError = (err) => console.error("[Home] Socket connect error:", err.message);
+    const handleDisconnect = (reason) => console.log("[Home] Socket disconnected:", reason);
+
+    socket.on("error_message", handleSocketError);
+    socket.on("connect_error", handleConnectError);
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("error_message", handleSocketError);
+      socket.off("connect_error", handleConnectError);
+      socket.off("disconnect", handleDisconnect);
+    };
   }, []);
 
   const fetchProfile = async (token) => {
@@ -50,12 +62,12 @@ export default function HomePage() {
       const res = await fetch(`${API}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Ошибка загрузки профиля');
+      if (!res.ok) throw new Error("Ошибка загрузки профиля");
       const data = await res.json();
       setUser(data);
       setName(data.username);
-      sessionStorage.setItem('userName', data.username);
-      sessionStorage.setItem('userId', data.id);
+      sessionStorage.setItem("userName", data.username);
+      sessionStorage.setItem("userId", data.id);
       setIsAuthChecked(true);
     } catch (err) {
       console.error(err);
@@ -64,10 +76,10 @@ export default function HomePage() {
   };
 
   const checkActiveRoom = (userId) => {
-  if (!userId) return;
-  if (!socket.connected) socket.connect();
-  socket.emit('check_active_room', { userId });
-};
+    if (!userId) return;
+    if (!socket.connected) socket.connect();
+    socket.emit("check_active_room", { userId: Number(userId) });
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -75,31 +87,31 @@ export default function HomePage() {
 
     const handler = (data) => {
       if (data?.roomId) {
-        sessionStorage.setItem('activeRoom', data.roomId);
+        sessionStorage.setItem("activeRoom", data.roomId);
         setActiveRoom(data.roomId);
       } else {
-        sessionStorage.removeItem('activeRoom');
-        setActiveRoom('');
+        sessionStorage.removeItem("activeRoom");
+        setActiveRoom("");
       }
     };
 
-    socket.on('active_room_info', handler);
-    return () => socket.off('active_room_info', handler);
+    socket.on("active_room_info", handler);
+    return () => socket.off("active_room_info", handler);
   }, [user?.id]);
 
   const handleRegister = async () => {
     try {
       const res = await fetch(`${API}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Ошибка регистрации');
+      if (!res.ok) throw new Error(data.message || "Ошибка регистрации");
 
-      Cookies.set('token', data.token, { expires: 7 });
-      sessionStorage.setItem('userName', data.user.username);
-      sessionStorage.setItem('userId', data.user.id);
+      Cookies.set("token", data.token, { expires: 7 });
+      sessionStorage.setItem("userName", data.user.username);
+      sessionStorage.setItem("userId", data.user.id);
       setUser(data.user);
       setName(data.user.username);
       setIsAuthChecked(true);
@@ -112,16 +124,16 @@ export default function HomePage() {
   const handleLogin = async () => {
     try {
       const res = await fetch(`${API}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Ошибка авторизации');
+      if (!res.ok) throw new Error(data.message || "Ошибка авторизации");
 
-      Cookies.set('token', data.token, { expires: 7 });
-      sessionStorage.setItem('userName', data.user.username);
-      sessionStorage.setItem('userId', data.user.id);
+      Cookies.set("token", data.token, { expires: 7 });
+      sessionStorage.setItem("userName", data.user.username);
+      sessionStorage.setItem("userId", data.user.id);
       setUser(data.user);
       setName(data.user.username);
       setIsAuthChecked(true);
@@ -132,114 +144,111 @@ export default function HomePage() {
   };
 
   const handleLogout = () => {
-    Cookies.remove('token');
-    sessionStorage.removeItem('userName');
-    sessionStorage.removeItem('userId');
-    sessionStorage.removeItem('activeRoom');
-    setUser({ username: '', id: null });
+    Cookies.remove("token");
+    sessionStorage.removeItem("userName");
+    sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("activeRoom");
+    setUser({ username: "", id: null });
     setIsAuthChecked(true);
     setIsRegisterMode(false);
   };
 
   const saveNameToSession = () => {
-    const trimmed = (name || '').trim();
+    const trimmed = (name || "").trim();
     if (!trimmed) {
-      alert('Введите имя!');
+      alert("Введите имя!");
       return false;
     }
-    sessionStorage.setItem('userName', trimmed);
+    sessionStorage.setItem("userName", trimmed);
     return true;
   };
 
   const createRoom = async (e) => {
     e.preventDefault();
     if (!saveNameToSession()) return;
-    const creatorUserId = sessionStorage.getItem('userId');
-    const sessionId = sessionStorage.getItem('sessionId');
-
+    const creatorUserId = sessionStorage.getItem("userId");
+    const sessionId = sessionStorage.getItem("sessionId");
     if (!creatorUserId) {
-      alert('Вы не авторизованы');
+      alert("Вы не авторизованы");
       return;
     }
 
     try {
-    const res = await fetch(`${API}/api/rooms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ creatorUserId, sessionId }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка при создании комнаты');
+      const res = await fetch(`${API}/api/rooms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creatorUserId, sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Ошибка при создании комнаты");
 
-    sessionStorage.setItem('activeRoom', data.id);
-    navigate(`/room/${data.id}`);
+      sessionStorage.setItem("activeRoom", data.id);
+      navigate(`/room/${data.id}`);
 
-    socket.emit('join_room', { roomId: data.id, userId: Number(creatorUserId), sessionId });
-    console.log('Комната создана и пользователь присоединен' );
-
-  } catch (err) {
-    alert(err.message);
-    console.error(err);
-  }
+      if (!socket.connected) socket.connect();
+      socket.emit("join_room", { roomId: data.id, userId: Number(creatorUserId), sessionId });
+    } catch (err) {
+      console.error("[Home] Create room error:", err);
+      alert(`Ошибка при создании комнаты: ${err.message}`);
+    }
   };
 
   const joinById = (e) => {
     e.preventDefault();
-  if (!saveNameToSession()) return;
-  if (!roomId.trim()) return alert('Введите ID комнаты');
+    if (!saveNameToSession()) return;
+    if (!roomId.trim()) return alert("Введите ID комнаты");
 
-  const userId = Number(sessionStorage.getItem('userId'));
-  const sessionId = sessionStorage.getItem('sessionId');
+    const userId = Number(sessionStorage.getItem("userId"));
+    const sessionId = sessionStorage.getItem("sessionId");
 
-  sessionStorage.setItem('activeRoom', roomId.trim());
-  navigate(`/room/${roomId.trim()}`);
+    sessionStorage.setItem("activeRoom", roomId.trim());
+    navigate(`/room/${roomId.trim()}`);
 
-  socket.emit('join_room', { roomId: roomId.trim(), userId, sessionId });
-
+    if (!socket.connected) socket.connect();
+    socket.emit("join_room", { roomId: roomId.trim(), userId, sessionId });
   };
 
   const goToActiveRoom = () => {
-    const activeRoom = sessionStorage.getItem('activeRoom');
+    const activeRoom = sessionStorage.getItem("activeRoom");
     if (activeRoom) navigate(`/room/${activeRoom}`);
   };
 
-
   const updateProfile = async (newUsername, newPassword) => {
-  try {
-    const usernameStr = (newUsername || '').trim();
-    const passwordStr = (newPassword || '').trim();
-    if (!usernameStr) {
-      setError('Имя не может быть пустым');
-      return;
+    try {
+      const usernameStr = (newUsername || "").trim();
+      const passwordStr = (newPassword || "").trim();
+      if (!usernameStr) {
+        setError("Имя не может быть пустым");
+        return;
+      }
+
+      const token = Cookies.get("token");
+      if (!token) {
+        setError("Вы не авторизованы");
+        return;
+      }
+
+      const res = await fetch(`${API}/api/user/update_profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username: usernameStr, password: passwordStr || null }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Ошибка обновления профиля");
+
+      setUser(data.user);
+      setName(data.user.username);
+      sessionStorage.setItem("userName", data.user.username);
+      sessionStorage.setItem("userId", data.user.id);
+      alert("Профиль успешно обновлен");
+    } catch (err) {
+      throw err;
     }
-
-    const token = Cookies.get('token');
-    if (!token) {
-      setError('Вы не авторизованы');
-      return;
-    }
-
-    const res = await fetch(`${API}/api/user/update_profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ username: usernameStr, password: passwordStr || null }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Ошибка обновления профиля');
-
-    setUser(data.user);
-    setName(data.user.username);
-    sessionStorage.setItem('userName', data.user.username);
-    sessionStorage.setItem('userId', data.user.id);
-    alert('Профиль успешно обновлен');
-  } catch (err) {
-    throw err;
-  }
-};
+  };
 
 if (!Cookies.get('token') && isAuthChecked) {
   return (

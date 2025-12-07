@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import socket from "@/socketClient";
 
 export const HatRoundPage = ({
   userId,
@@ -26,15 +25,28 @@ export const HatRoundPage = ({
     }
   }, [activePlayer, isCurrentExplainer]);
 
+  useEffect(() => {
+    console.log("[HatRoundPage] Round state updated:", {
+      round,
+      activePlayer,
+      guesser,
+      currentWord,
+      isCurrentExplainer,
+      isReady,
+      userId,
+      timer
+    });
+  }, [round, activePlayer, guesser, currentWord, isCurrentExplainer, isReady, timer]);
+
   const handleReady = () => {
     if (!isCurrentExplainer) return;
-    console.log("Emitting player_ready");
+    console.log("[HatRoundPage] Player is ready:", userId);
     setIsReady(true);
     onReady();
   };
 
   const handleWordGuessed = () => {
-    console.log("Emitting word_guessed");
+    console.log("[HatRoundPage] Word guessed by:", userId, "Word:", currentWord);
     onWordGuessed();
   };
 
@@ -42,16 +54,6 @@ export const HatRoundPage = ({
   if (isCurrentExplainer && !isReady) contentType = "ready";
   else if (isCurrentExplainer && isReady && currentWord) contentType = "word";
   else if (guesser === userId) contentType = "guess";
-
-  console.log("HatRoundPage state:", {
-    contentType,
-    isCurrentExplainer,
-    isReady,
-    currentWord,
-    activePlayer,
-    guesser,
-    userId
-  });
 
   return (
     <section className="flex flex-col w-full items-start gap-6 relative">
@@ -62,9 +64,7 @@ export const HatRoundPage = ({
             <p className="text-gray-500 text-base">
               Объясняющий: {getPlayerName(activePlayer)}
               {isCurrentExplainer && " (Вы)"} | Отгадывающий:{" "}
-              {mode === "team"
-                ? `Team ${guesser}`
-                : getPlayerName(guesser)}
+              {mode === "team" ? `Team ${guesser}` : getPlayerName(guesser)}
             </p>
           </div>
 
@@ -74,9 +74,7 @@ export const HatRoundPage = ({
               alt="timer"
               className="w-full h-full"
             />
-            <span className="absolute text-2xl font-bold text-gray-700">
-              {timer}
-            </span>
+            <span className="absolute text-2xl font-bold text-gray-700">{timer}</span>
           </div>
         </CardContent>
       </Card>
@@ -132,7 +130,7 @@ export const HatRoundPage = ({
 
           {contentType === "spectating" && (
             <p className="text-xl text-gray-500">
-              Ожидайте... {getPlayerName(activePlayer)} объясняет {" "}
+              Ожидайте... {getPlayerName(activePlayer)} объясняет{" "}
               {mode === "team" ? `Team ${guesser}` : getPlayerName(guesser)}.
             </p>
           )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,14 +33,8 @@ export default function HatPreparePairsPage({
     }
   };
 
-  const handlePairDragStart = (index) => {
-    setDraggedPairIndex(index);
-  };
-
-  const handlePairDragOver = (e, index) => {
-    e.preventDefault();
-  };
-
+  const handlePairDragStart = (index) => setDraggedPairIndex(index);
+  const handlePairDragOver = (e, index) => e.preventDefault();
   const handlePairDrop = (e, targetIndex) => {
     e.preventDefault();
     if (draggedPairIndex === null || draggedPairIndex === targetIndex) return;
@@ -51,11 +45,12 @@ export default function HatPreparePairsPage({
     
     setPairs(newPairs);
     setDraggedPairIndex(null);
+    console.log("[HatPreparePairsPage] Pairs reordered:", newPairs);
   };
 
   const handleDropOnSlot = (explainerId) => {
     if (!draggedPlayer) return;
-    
+
     if (draggedPlayer.id === explainerId) {
       alert("Нельзя создать пару с самим собой!");
       return;
@@ -79,7 +74,11 @@ export default function HatPreparePairsPage({
       guesser: { id: draggedPlayer.id, name: draggedPlayer.name } 
     };
     
-    setPairs((prev) => [...prev, newPair]);
+    setPairs((prev) => {
+      const updatedPairs = [...prev, newPair];
+      console.log("[HatPreparePairsPage] Pair created:", newPair);
+      return updatedPairs;
+    });
     setDraggedPlayer(null);
   };
 
@@ -90,7 +89,6 @@ export default function HatPreparePairsPage({
     for (let i = 0; i < shuffled.length; i++) {
       const explainer = shuffled[i];
       const guesser = shuffled[(i + 1) % shuffled.length];
-      
       newPairs.push({ 
         explainer: { id: explainer.id, name: explainer.name }, 
         guesser: { id: guesser.id, name: guesser.name } 
@@ -98,18 +96,18 @@ export default function HatPreparePairsPage({
     }
     
     setPairs(newPairs);
-  };
-
-  const handleCancel = () => {
-    window.history.back();
+    console.log("[HatPreparePairsPage] Pairs shuffled:", newPairs);
   };
 
   const removePair = (explainerId) => {
-    setPairs(prev => prev.filter(pair => pair.explainer.id !== explainerId));
+    setPairs(prev => {
+      const updated = prev.filter(pair => pair.explainer.id !== explainerId);
+      console.log("[HatPreparePairsPage] Pair removed:", explainerId, updated);
+      return updated;
+    });
   };
 
   const allPlayersDistributed = pairs.length === players.length;
-
   const availableExplainers = getAvailableExplainerSlots();
   const availableGuessers = getAvailableGuesserPlayers();
 
@@ -258,14 +256,6 @@ export default function HatPreparePairsPage({
 
       <div className="flex justify-center gap-3 w-full">
         <Button
-          variant="outline"
-          onClick={handleCancel}
-          className="text-blue-500 border-blue-300 hover:bg-blue-50"
-        >
-          Отмена
-        </Button>
-
-        <Button
           variant="secondary"
           onClick={handleShuffle}
           className="flex gap-2 bg-blue-100 text-blue-700"
@@ -276,7 +266,10 @@ export default function HatPreparePairsPage({
 
         <Button
           disabled={!allPlayersDistributed}
-          onClick={onConfirmPairs}
+          onClick={() => {
+            onConfirmPairs();
+            console.log("[HatPreparePairsPage] Pairs confirmed:", pairs);
+          }}
           className="bg-blue-600 text-white hover:bg-blue-700"
         >
           Подтвердить пары ({pairs.length}/{players.length})
@@ -296,7 +289,10 @@ export default function HatPreparePairsPage({
 
       <div className="mt-6 text-right w-full">
         <button
-          onClick={onEndGame}
+          onClick={() => {
+            onEndGame();
+            console.log("[HatPreparePairsPage] Game ended early by user");
+          }}
           className="text-red-600 text-sm hover:underline"
         >
           Закончить игру

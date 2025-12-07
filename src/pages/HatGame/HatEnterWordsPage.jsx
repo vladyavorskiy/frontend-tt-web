@@ -1,15 +1,9 @@
 import React from "react";
-import { BellIcon, SettingsIcon } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../../components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-
 
 export default function HatEnterWordsPage({
   socket,
@@ -27,15 +21,18 @@ export default function HatEnterWordsPage({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (
-      !Array.isArray(userWords) ||
-      userWords.length !== wordsPerPlayer ||
-      userWords.some((w) => !w || !w.trim())
-    ) {
+
+    // Валидация
+    if (!Array.isArray(userWords) ||
+        userWords.length !== wordsPerPlayer ||
+        userWords.some((w) => !w || !w.trim())) {
       alert("Пожалуйста, заполните все слова!");
       return;
     }
+
+    // Отправка слов на сервер
     socket.emit("submit_words", { words: userWords });
+    console.log("[HatEnterWordsPage] submit_words emitted:", userWords);
   };
 
   return (
@@ -52,27 +49,16 @@ export default function HatEnterWordsPage({
                     </h2>
                   </div>
 
-                  <form
-                    className="flex flex-col items-start gap-4 w-full"
-                    onSubmit={handleSubmit}
-                  >
+                  <form className="flex flex-col items-start gap-4 w-full" onSubmit={handleSubmit}>
                     {Array.from({ length: wordsPerPlayer }).map((_, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col items-start gap-1 w-full"
-                      >
-                        <Label
-                          htmlFor={`word-${index}`}
-                          className="font-medium text-oxford-blue"
-                        >
+                      <div key={index} className="flex flex-col items-start gap-1 w-full">
+                        <Label htmlFor={`word-${index}`} className="font-medium text-oxford-blue">
                           Слово {index + 1}
                         </Label>
                         <Input
                           id={`word-${index}`}
                           value={userWords[index] || ""}
-                          onChange={(e) =>
-                            handleChangeWord(index, e.target.value)
-                          }
+                          onChange={(e) => handleChangeWord(index, e.target.value)}
                           className="w-full h-[42px] bg-white rounded-lg border border-solid border-gray-300 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-royal-blue"
                         />
                       </div>
@@ -91,8 +77,7 @@ export default function HatEnterWordsPage({
 
             <div className="flex flex-col items-center w-full">
               <p className="text-pale-sky text-center text-sm">
-                Ожидание: {waitingStatus.submitted} /{" "}
-                {waitingStatus.total || players.length} игроков
+                Ожидание: {waitingStatus.submitted} / {waitingStatus.total || players.length} игроков
               </p>
             </div>
           </div>
