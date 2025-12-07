@@ -32,11 +32,15 @@ export default function HatSetupPage({
       alert("Введите корректное количество слов на игрока!");
       return;
     }
-    socket.emit("create_game", { type, mode, roundTime, wordsPerPlayer });
+
+    const payload = { type, mode, roundTime, wordsPerPlayer };
+    socket.emit("create_game", payload);
+    console.log("[HatSetupPage] create_game emitted:", payload);
   };
 
   const handleCancel = () => {
     socket.emit("cancel_create_game");
+    console.log("[HatSetupPage] cancel_create_game emitted");
   };
 
   const handleRoundTimeChange = (index, value) => {
@@ -49,9 +53,7 @@ export default function HatSetupPage({
     <div className="flex flex-col w-full min-h-screen items-center justify-center bg-[linear-gradient(0deg,rgba(239,246,255,1)_0%,rgba(239,246,255,1)_100%),linear-gradient(0deg,rgba(255,255,255,1)_0%,rgba(255,255,255,1)_100%)] bg-white-athens-gray px-4 py-[120px]">
       <Card className="w-full max-w-2xl border-[#e5e7ebcc] shadow-[0px_4px_6px_-4px_#0000001a,0px_10px_15px_-3px_#0000001a]">
         <CardHeader className="border-b border-[#e5e7ebcc] pt-[31px] pb-[33px] px-8">
-          <CardTitle className="text-2xl font-semibold text-vulcan">
-            Настройки игры
-          </CardTitle>
+          <CardTitle className="text-2xl font-semibold text-vulcan">Настройки игры</CardTitle>
           <CardDescription className="text-pale-sky text-base">
             Задайте параметры перед началом сессии.
           </CardDescription>
@@ -60,9 +62,7 @@ export default function HatSetupPage({
         <CardContent className="flex flex-col gap-6 p-8">
           <div className="flex items-start justify-center gap-6 w-full flex-wrap">
             <div className="flex flex-col flex-1 gap-2 min-w-[180px]">
-              <Label className="font-medium text-vulcan text-base">
-                Режим игры
-              </Label>
+              <Label className="font-medium text-vulcan text-base">Режим игры</Label>
               <ToggleGroup
                 type="single"
                 value={mode}
@@ -85,9 +85,7 @@ export default function HatSetupPage({
             </div>
 
             <div className="flex flex-col flex-1 gap-2 min-w-[180px]">
-              <Label className="font-medium text-vulcan text-base">
-                Тип игры
-              </Label>
+              <Label className="font-medium text-vulcan text-base">Тип игры</Label>
               <ToggleGroup
                 type="single"
                 value={type}
@@ -111,9 +109,7 @@ export default function HatSetupPage({
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <Label className="font-medium text-vulcan text-base">
-              Слов на игрока
-            </Label>
+            <Label className="font-medium text-vulcan text-base">Слов на игрока</Label>
             <Input
               type="number"
               min={1}
@@ -124,9 +120,7 @@ export default function HatSetupPage({
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <Label className="font-medium text-vulcan text-base">
-              Время на раунды (сек)
-            </Label>
+            <Label className="font-medium text-vulcan text-base">Время на раунды (сек)</Label>
             <div className="flex items-center gap-6">
               {roundTime.map((time, index) => (
                 <Input
@@ -134,9 +128,7 @@ export default function HatSetupPage({
                   type="number"
                   min={1}
                   value={time}
-                  onChange={(e) =>
-                    handleRoundTimeChange(index, e.target.value)
-                  }
+                  onChange={(e) => handleRoundTimeChange(index, e.target.value)}
                   className="w-[68px] h-12 text-center bg-athens-gray border-gray-300"
                 />
               ))}
