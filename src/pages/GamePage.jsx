@@ -9,7 +9,7 @@ import { HatRoundPage } from './HatGame/HatRoundPage';
 import { HatScoreboardPage } from './HatGame/HatScoreboardPage';
 import { HatFinishPage } from './HatGame/HatFinishPage';
 
-export default function GamePage() {
+export default function GamePage({showToast }) {
   const navigate = useNavigate();
   const { id: roomId } = useParams();
   const location = useLocation();
@@ -39,7 +39,6 @@ export default function GamePage() {
 
   const getPlayerName = (id) => players.find((p) => p.id === id)?.name || "Неизвестный";
 
-  // ---- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----
   const handleReady = () => { 
     if (!isCurrentExplainer) return; 
     setIsReady(true); 
@@ -76,7 +75,6 @@ export default function GamePage() {
     setTimer(0);
   };
 
-  // ---- СОБЫТИЯ SOCKET.IO ----
   useEffect(() => {
     if (!socket) return;
 
@@ -141,11 +139,10 @@ export default function GamePage() {
     return () => Object.entries(handlers).forEach(([event, handler]) => socket.off(event, handler));
   }, [socket, isCurrentExplainer, userId, roomId]);
 
-  // ---- ПОДГОТОВКА СЛОВ ----
   useEffect(() => { if (gamePhase === "enterWords") setUserWords(Array(wordsPerPlayer).fill("")); }, [gamePhase, wordsPerPlayer]);
 
   const submitWords = () => {
-    if (!userWords.every(w => w.trim())) return alert("Заполните все слова!");
+    if (!userWords.every(w => w.trim())) return showToast("Заполните все слова!");
     socket.emit("submit_words", { words: userWords });
     console.log('[GamePage] submit_words emitted:', userWords);
   };
@@ -157,10 +154,10 @@ export default function GamePage() {
     socket.emit("end_game_early");
     setGamePhase("finished");
     stopTimerLocal();
+    showToast("Игра завершена досрочно");
     console.log('[GamePage] end_game_early emitted');
   };
 
-  // ---- РЕНДЕР ----
   if (gamePhase === "setup") {
     if (!isCreator) {
       return (

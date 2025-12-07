@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import * as Toast from '@radix-ui/react-toast';
 import ProfileModal from "./ProfileModal";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
@@ -20,7 +21,7 @@ function ensureSessionId() {
   }
 }
 
-export default function HomePage() {
+export default function HomePage({showToast}) {
   ensureSessionId();
   const navigate = useNavigate();
 
@@ -156,7 +157,7 @@ export default function HomePage() {
   const saveNameToSession = () => {
     const trimmed = (name || "").trim();
     if (!trimmed) {
-      alert("Введите имя!");
+      showToast('error', "Введите имя!");
       return false;
     }
     sessionStorage.setItem("userName", trimmed);
@@ -169,7 +170,7 @@ export default function HomePage() {
     const creatorUserId = sessionStorage.getItem("userId");
     const sessionId = sessionStorage.getItem("sessionId");
     if (!creatorUserId) {
-      alert("Вы не авторизованы");
+      showToast('error', "Вы не авторизованы");
       return;
     }
 
@@ -189,14 +190,14 @@ export default function HomePage() {
       socket.emit("join_room", { roomId: data.id, userId: Number(creatorUserId), sessionId });
     } catch (err) {
       console.error("[Home] Create room error:", err);
-      alert(`Ошибка при создании комнаты: ${err.message}`);
+      showToast('error', `Ошибка при создании комнаты: ${err.message}`);
     }
   };
 
   const joinById = (e) => {
     e.preventDefault();
     if (!saveNameToSession()) return;
-    if (!roomId.trim()) return alert("Введите ID комнаты");
+    if (!roomId.trim()) return showToast('default', "Введите ID комнаты");
 
     const userId = Number(sessionStorage.getItem("userId"));
     const sessionId = sessionStorage.getItem("sessionId");
@@ -218,13 +219,13 @@ export default function HomePage() {
       const usernameStr = (newUsername || "").trim();
       const passwordStr = (newPassword || "").trim();
       if (!usernameStr) {
-        setError("Имя не может быть пустым");
+        showToast('error',"Имя не может быть пустым");
         return;
       }
 
       const token = Cookies.get("token");
       if (!token) {
-        setError("Вы не авторизованы");
+        showToast('error', "Вы не авторизованы");
         return;
       }
 
@@ -244,7 +245,7 @@ export default function HomePage() {
       setName(data.user.username);
       sessionStorage.setItem("userName", data.user.username);
       sessionStorage.setItem("userId", data.user.id);
-      alert("Профиль успешно обновлен");
+      showToast('success', "Профиль успешно обновлен");
     } catch (err) {
       throw err;
     }

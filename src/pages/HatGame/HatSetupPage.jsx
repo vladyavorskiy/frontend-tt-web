@@ -22,14 +22,15 @@ export default function HatSetupPage({
   setRoundTime,
   wordsPerPlayer,
   setWordsPerPlayer,
+  showToast
 }) {
   const handleConfirm = () => {
     if (!Array.isArray(roundTime) || roundTime.some((t) => isNaN(t) || t <= 0)) {
-      alert("Введите корректное время для всех раундов!");
+      showToast('error', "Введите корректное время для всех раундов!");
       return;
     }
     if (!wordsPerPlayer || wordsPerPlayer <= 0) {
-      alert("Введите корректное количество слов на игрока!");
+      showToast('error', "Введите корректное количество слов на игрока!");
       return;
     }
 
