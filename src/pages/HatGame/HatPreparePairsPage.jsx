@@ -11,7 +11,8 @@ export default function HatPreparePairsPage({
   socket, 
   onConfirmPairs,
   getPlayerName,
-  onEndGame 
+  onEndGame,
+  showToast 
 }) {
   const [draggedPlayer, setDraggedPlayer] = useState(null);
   const [draggedPairIndex, setDraggedPairIndex] = useState(null);
@@ -52,19 +53,19 @@ export default function HatPreparePairsPage({
     if (!draggedPlayer) return;
 
     if (draggedPlayer.id === explainerId) {
-      alert("Нельзя создать пару с самим собой!");
+      showToast('error', "Нельзя создать пару с самим собой!");
       return;
     }
 
     const explainerAlreadyUsed = pairs.some(pair => pair.explainer.id === explainerId);
     if (explainerAlreadyUsed) {
-      alert("Этот игрок уже является объясняющим в другой паре!");
+      showToast('error', "Этот игрок уже является объясняющим в другой паре!");
       return;
     }
 
     const guesserAlreadyUsed = pairs.some(pair => pair.guesser.id === draggedPlayer.id);
     if (guesserAlreadyUsed) {
-      alert("Этот игрок уже является отгадывающим в другой паре!");
+      showToast('error', "Этот игрок уже является отгадывающим в другой паре!");
       return;
     }
 

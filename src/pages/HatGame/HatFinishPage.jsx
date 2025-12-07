@@ -11,7 +11,6 @@ export const HatFinishPage = ({
   navigate,
   roomId,
 }) => {
-  // Сортируем игроков по очкам (по убыванию)
   const sortedPlayers = useMemo(() => {
     if (!players || !scores) return [];
     
@@ -19,19 +18,16 @@ export const HatFinishPage = ({
       const scoreA = Number(scores[a.id]) || 0;
       const scoreB = Number(scores[b.id]) || 0;
       
-      // Сортировка по убыванию очков
       if (scoreB !== scoreA) {
         return scoreB - scoreA;
       }
       
-      // При равных очках - сортировка по имени
       const nameA = a.name || getPlayerName(a.id) || '';
       const nameB = b.name || getPlayerName(b.id) || '';
       return nameA.localeCompare(nameB);
     });
   }, [players, scores, getPlayerName]);
 
-  // Определяем победителей
   const winners = useMemo(() => {
     if (!scores) return [];
 
@@ -54,7 +50,6 @@ export const HatFinishPage = ({
     return [];
   }, [mode, scores, teams]);
 
-  // Логи для отладки
   useEffect(() => {
     console.log("[HatFinishPage] Game finished. Mode:", mode);
     console.log("[HatFinishPage] Sorted players:", sortedPlayers.map(p => ({
@@ -83,7 +78,6 @@ export const HatFinishPage = ({
               >
                 <CardContent className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    {/* Номер места */}
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
                       <span className="font-bold text-gray-700">
                         {index + 1}
@@ -121,7 +115,6 @@ export const HatFinishPage = ({
             const isWinner = winners.includes(idx);
             const teamScore = team.reduce((sum, id) => sum + (Number(scores[id]) || 0), 0);
             
-            // Сортируем игроков внутри команды по очкам
             const sortedTeamPlayers = [...team].sort((a, b) => {
               const scoreA = Number(scores[a]) || 0;
               const scoreB = Number(scores[b]) || 0;

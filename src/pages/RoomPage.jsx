@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CopyIcon, SendIcon, AlertCircle } from "lucide-react";
 
-export default function RoomPage() {
+export default function RoomPage({showToast}) {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
 
@@ -27,12 +27,11 @@ export default function RoomPage() {
   const userId = Number(sessionStorage.getItem('userId'));
   const sessionId = sessionStorage.getItem('sessionId');
 
-  // ---- СОЕДИНЕНИЕ И СОБЫТИЯ ----
   useEffect(() => {
     console.log('[RoomPage] mount, roomId =', roomId);
 
     if (!userName || !userId) {
-      alert('Сначала войдите в аккаунт на главной странице.');
+      showToast('success', 'Сначала войдите в аккаунт на главной странице.');
       navigate('/');
       return;
     }
@@ -68,7 +67,7 @@ export default function RoomPage() {
         sessionStorage.removeItem('activeRoom');
         setLeaving(false);
         setLeaveError(null);
-        alert(`${data.userName || 'Вы'} успешно покинули комнату`);
+        showToast('success', `${data.userName || 'Вы'} успешно покинули комнату`);
         navigate('/');
       },
 
@@ -76,7 +75,7 @@ export default function RoomPage() {
         console.error('[RoomPage] leave_error:', error);
         setLeaving(false);
         setLeaveError(error.message || 'Неизвестная ошибка');
-        alert(`Ошибка при выходе из комнаты: ${error.message}`);
+        showToast('error', `Ошибка при выходе из комнаты: ${error.message}`);
       },
 
       chat_history: (msgs) => {
@@ -108,8 +107,8 @@ export default function RoomPage() {
         });
         sessionStorage.removeItem('activeRoom');
         setTimeout(() => { 
-          alert('Комната была закрыта создателем'); 
-          navigate('/'); 
+          showToast('Комната была закрыта создателем'); 
+          navigate('default',); 
         }, 1000);
       },
 
@@ -119,12 +118,10 @@ export default function RoomPage() {
         navigate(`/room/${roomId}/game`, { state: { userId, isCreator } });
       },
 
-      // игровые события
       player_ready: (data) => console.log('[RoomPage] player_ready:', data),
       update_score: (data) => console.log('[RoomPage] update_score:', data),
     };
 
-    // Подписка
     Object.entries(handlers).forEach(([event, handler]) => socket.on(event, handler));
 
     return () => {
@@ -134,10 +131,8 @@ export default function RoomPage() {
 
   }, [roomId, navigate, userId, userName, sessionId]);
 
-  // ---- СКРОЛЛ ЧАТА ----
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages]);
 
-  // ---- ОТПРАВКА СООБЩЕНИЯ ----
   const sendMessage = (e) => {
     e.preventDefault();
     if (!msg.trim() || roomClosed || !socket) return;
@@ -146,7 +141,6 @@ export default function RoomPage() {
     setMsg('');
   };
 
-  // ---- ВЫХОД ----
   const leaveRoom = () => {
     if (!socket || leaving) return;
     if (!window.confirm('Вы уверены, что хотите выйти из комнаты?')) return;
@@ -158,7 +152,7 @@ export default function RoomPage() {
     const timeout = setTimeout(() => {
       console.warn('[RoomPage] leave timeout expired');
       setLeaving(false);
-      alert('Не удалось выйти из комнаты. Проверьте соединение или перезагрузите страницу.');
+      showToast('error', 'Не удалось выйти из комнаты. Проверьте соединение или перезагрузите страницу.');
     }, 10000);
 
     socket.once('left_room_success', () => clearTimeout(timeout));
@@ -167,7 +161,6 @@ export default function RoomPage() {
     socket.emit('leave_room_request');
   };
 
-  // ---- УДАЛЕНИЕ КОМНАТЫ ----
   const deleteRoom = () => {
     if (!socket) return;
     if (!window.confirm('Вы точно хотите удалить комнату? Все участники будут выгнаны.')) return;
@@ -175,7 +168,6 @@ export default function RoomPage() {
     socket.emit('delete_room');
   };
 
-  // ---- СТАРТ ИГРЫ ----
   const startGame = () => {
     if (!socket || !isCreator) return;
     console.log('[RoomPage] start_game_request emitted');
@@ -184,7 +176,7 @@ export default function RoomPage() {
 
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
-    alert(`ID комнаты ${roomId} скопирован`);
+    showToast('success', `ID комнаты ${roomId} скопирован`);
   };
 
   if (gameStarted) {
@@ -295,7 +287,6 @@ export default function RoomPage() {
             <section className="flex flex-col items-start pt-6 pb-0 px-0 w-full">
               <div className="flex flex-col lg:flex-row items-start justify-center gap-8 w-full">
                 
-                {/* Chat Card */}
                 <Card className="flex-1 max-w-full lg:max-w-[842.66px] bg-white rounded-2xl border border-gray-200">
                   <CardHeader className="pt-4 pb-4 px-6 border-b border-gray-200">
                     <CardTitle className="font-semibold text-lg text-gray-900">

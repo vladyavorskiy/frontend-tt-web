@@ -12,6 +12,7 @@ export default function HatEnterWordsPage({
   wordsPerPlayer,
   waitingStatus,
   players,
+  showToast
 }) {
   const handleChangeWord = (index, value) => {
     const updated = [...userWords];
@@ -22,15 +23,13 @@ export default function HatEnterWordsPage({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Валидация
     if (!Array.isArray(userWords) ||
         userWords.length !== wordsPerPlayer ||
         userWords.some((w) => !w || !w.trim())) {
-      alert("Пожалуйста, заполните все слова!");
+      showToast('error', "Пожалуйста, заполните все слова!");
       return;
     }
 
-    // Отправка слов на сервер
     socket.emit("submit_words", { words: userWords });
     console.log("[HatEnterWordsPage] submit_words emitted:", userWords);
   };
