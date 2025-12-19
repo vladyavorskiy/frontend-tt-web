@@ -62,107 +62,174 @@ export const HatFinishPage = ({
   }, [mode, sortedPlayers, winners, scores, getPlayerName]);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto flex flex-col gap-6">
-      <h2 className="text-3xl font-bold text-center mb-4">Игра закончена</h2>
-
-      {mode === "solo" ? (
-        <div className="flex flex-col gap-2">
-          {sortedPlayers.map((p, index) => {
-            const playerScore = Number(scores[p.id]) || 0;
-            const isWinner = winners.includes(p.id);
-            
-            return (
-              <Card
-                key={p.id}
-                className={`p-4 ${isWinner ? "bg-yellow-200 border-2 border-yellow-400" : ""}`}
-              >
-                <CardContent className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
-                      <span className="font-bold text-gray-700">
-                        {index + 1}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-col">
-                      <span className="font-semibold">
-                        {p.name || getPlayerName(p.id)}
-                      </span>
-                      {isWinner && (
-                        <span className="text-xs text-yellow-700 font-medium">
-                          🏆 Победитель
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <span className="font-bold text-xl">{playerScore}</span>
-                    <div className="text-sm text-gray-500">
-                      {playerScore === Math.max(...Object.values(scores).map(s => Number(s) || 0)) 
-                        ? "1 место" 
-                        : `${index + 1} место`}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <div className="inline-block p-6 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-2xl border-2 border-yellow-300 dark:border-yellow-700">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white">
+              Игра завершена!
+            </h1>
+          </div>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
+            Итоговые результаты игры
+          </p>
         </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {teams && teams.map((team, idx) => {
-            const isWinner = winners.includes(idx);
-            const teamScore = team.reduce((sum, id) => sum + (Number(scores[id]) || 0), 0);
-            
-            const sortedTeamPlayers = [...team].sort((a, b) => {
-              const scoreA = Number(scores[a]) || 0;
-              const scoreB = Number(scores[b]) || 0;
-              return scoreB - scoreA;
-            });
 
-            return (
-              <Card
-                key={idx}
-                className={`p-4 flex flex-col gap-2 ${isWinner ? "bg-yellow-200 border-2 border-yellow-400" : ""}`}
-              >
-                <CardContent>
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-bold text-lg">
-                      Команда {idx + 1} 
-                      {isWinner && " 🏆"}
-                    </h3>
-                    <span className="font-bold text-xl">Очки: {teamScore}</span>
-                  </div>
+        {mode === "solo" ? (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-6">
+                <h2 className="text-2xl font-bold text-center">Таблица очков</h2>
+              </div>
+              <div className="p-6 space-y-4">
+                {sortedPlayers.map((p, index) => {
+                  const playerScore = Number(scores[p.id]) || 0;
+                  const isWinner = winners.includes(p.id);
                   
-                  <ul className="space-y-2">
-                    {sortedTeamPlayers.map((id, playerIndex) => {
-                      const playerScore = Number(scores[id]) || 0;
-                      return (
-                        <li key={id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">#{playerIndex + 1}</span>
-                            <span>{getPlayerName(id)}</span>
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center justify-between p-4 rounded-xl transition-all ${
+                        isWinner 
+                          ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-2 border-yellow-300 dark:border-yellow-700" 
+                          : "bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold ${
+                            index === 0 ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white" :
+                            index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white" :
+                            index === 2 ? "bg-gradient-to-r from-amber-700 to-amber-800 text-white" :
+                            "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                          }`}>
+                            {index + 1}
                           </div>
-                          <span className="font-semibold">{playerScore}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                          {isWinner && (
+                            <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center animate-bounce">
+                              <span className="text-sm">👑</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xl text-gray-800 dark:text-white">
+                            {p.name || getPlayerName(p.id)}
+                          </h3>
+                          {isWinner && (
+                            <span className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                              Победитель
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                          <span className="text-3xl font-bold text-white">
+                            {playerScore}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {index === 0 ? "1 место" : `${index + 1} место`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6">
+                <h2 className="text-2xl font-bold text-center">Результаты команд</h2>
+              </div>
+              <div className="p-6 space-y-6">
+                {teams && teams.map((team, idx) => {
+                  const isWinner = winners.includes(idx);
+                  const teamScore = team.reduce((sum, id) => sum + (Number(scores[id]) || 0), 0);
+                  
+                  const sortedTeamPlayers = [...team].sort((a, b) => {
+                    const scoreA = Number(scores[a]) || 0;
+                    const scoreB = Number(scores[b]) || 0;
+                    return scoreB - scoreA;
+                  });
 
-      <div className="mt-6 flex justify-center">
-        <Button
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          onClick={() => navigate(`/room/${roomId}`)}
-        >
-          Вернуться в комнату
-        </Button>
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-xl overflow-hidden ${
+                        isWinner 
+                          ? "border-2 border-yellow-400 dark:border-yellow-600" 
+                          : "border border-gray-200 dark:border-gray-700"
+                      }`}
+                    >
+                      <div className={`p-4 ${
+                        isWinner 
+                          ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30" 
+                          : "bg-gray-50 dark:bg-gray-900/50"
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              isWinner 
+                                ? "bg-gradient-to-r from-yellow-500 to-orange-500" 
+                                : "bg-gradient-to-r from-blue-500 to-purple-500"
+                            }`}>
+                              <span className="text-white font-bold">{idx + 1}</span>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                              Команда {idx + 1}
+                              {isWinner && " 🏆"}
+                            </h3>
+                          </div>
+                          <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg">
+                            <span className="text-2xl font-bold text-white">
+                              {teamScore} очков
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white dark:bg-gray-800 p-4">
+                        <ul className="space-y-3">
+                          {sortedTeamPlayers.map((id, playerIndex) => {
+                            const playerScore = Number(scores[id]) || 0;
+                            return (
+                              <li key={id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                    {playerIndex + 1}
+                                  </div>
+                                  <span className="font-medium text-gray-800 dark:text-white">
+                                    {getPlayerName(id)}
+                                  </span>
+                                </div>
+                                <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg font-bold text-blue-600 dark:text-blue-400">
+                                  {playerScore}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="text-center space-y-6">
+          <Button
+            className="h-14 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+            onClick={() => navigate(`/room/${roomId}`)}
+          >
+            Вернуться в комнату
+          </Button>
+          
+        </div>
       </div>
     </div>
   );
