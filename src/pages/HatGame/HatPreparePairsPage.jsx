@@ -113,191 +113,231 @@ export default function HatPreparePairsPage({
   const availableGuessers = getAvailableGuesserPlayers();
 
   return (
-    <div className="flex flex-col w-full items-start bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-      <header className="w-full text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Создание пар</h2>
-        <p className="text-gray-500 text-sm">
-          Создавайте пары отгадывающий - объясняющий. Меняйте порядок пар.
-        </p>
-      </header>
-
-      {/* Таблица пар */}
-      <Card className="p-4 w-full mb-6">
-        <CardContent>
-          <div className="grid grid-cols-[auto_1fr_1fr_auto] border-b pb-2 font-semibold text-gray-700">
-            <div className="w-8">#</div>
-            <div>Объясняющий</div>
-            <div>Отгадывающий</div>
-            <div className="w-12">Action</div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <div className="inline-block p-4 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
+              Создание пар
+            </h2>
           </div>
-
-          {pairs.map((pair, index) => (
-            <div
-              key={pair.explainer.id}
-              className="grid grid-cols-[auto_1fr_1fr_auto] items-center py-2 border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              draggable
-              onDragStart={() => handlePairDragStart(index)}
-              onDragOver={(e) => handlePairDragOver(e, index)}
-              onDrop={(e) => handlePairDrop(e, index)}
-              onDragEnd={() => setDraggedPairIndex(null)}
-            >
-              <div className="flex items-center gap-1 w-8">
-                <GripVerticalIcon className="w-4 h-4 text-gray-400 cursor-grab" />
-                <span className="text-sm text-gray-500">{index + 1}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-blue-100 text-blue-800">
-                    {pair.explainer.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span>{pair.explainer.name}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-green-100 text-green-800">
-                    {pair.guesser.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span>{pair.guesser.name}</span>
-              </div>
-
-              <div className="flex justify-end w-12">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removePair(pair.explainer.id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ×
-                </Button>
-              </div>
-            </div>
-          ))}
-
-          {availableExplainers.map((explainer) => {
-            const existingPair = pairs.find((p) => p.explainer.id === explainer.id);
-            return (
-              <div
-                key={explainer.id}
-                className="grid grid-cols-[auto_1fr_1fr_auto] items-center py-2 border-b border-gray-100"
-              >
-                <div className="w-8"></div>
-
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-blue-100 text-blue-800">
-                      {explainer.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{explainer.name}</span>
-                </div>
-
-                <div
-                  className="border-2 border-dashed border-gray-300 rounded-md p-2 text-center text-gray-400 hover:bg-blue-50 transition min-h-[60px] flex items-center justify-center"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => handleDropOnSlot(explainer.id)}
-                >
-                  {existingPair ? (
-                    <div className="flex justify-between items-center gap-2 text-gray-800 w-full">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback className="bg-green-100 text-green-800">
-                            {existingPair.guesser.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{existingPair.guesser.name}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <span>Перетащите угадывающего сюда</span>
-                  )}
-                </div>
-
-                <div className="w-12"></div>
-              </div>
-            );
-          })}
-
-          {availableExplainers.length === 0 && pairs.length > 0 && (
-            <div className="text-center py-4 text-green-600 font-semibold col-span-4">
-              Все игроки распределены
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {availableGuessers.length > 0 && (
-        <>
-          <h3 className="text-lg font-semibold mb-2">Доступные отгадывающие</h3>
-          <p className="text-gray-500 text-sm mb-2">Перетащите игрока в строку объясняющего</p>
-          <div className="flex flex-wrap gap-3 p-4 bg-green-50 rounded-lg border border-gray-200 mb-6 w-full">
-            {availableGuessers.map((player) => (
-              <div
-                key={player.id}
-                draggable
-                onDragStart={() => handleDragStart(player)}
-                onDragEnd={() => setDraggedPlayer(null)}
-                className="flex flex-col items-center p-3 w-[120px] bg-white cursor-grab active:scale-95 transition border rounded-lg shadow-sm"
-              >
-                <Avatar className="w-12 h-12 mb-2">
-                  <AvatarFallback className="bg-green-100 text-green-800">
-                    {player.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-gray-800 text-center">{player.name}</span>
-                <span className="text-xs text-green-600 mt-1">Отгадывающий</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="flex justify-center gap-3 w-full">
-        <Button
-          variant="secondary"
-          onClick={handleShuffle}
-          className="flex gap-2 bg-blue-100 text-blue-700"
-        >
-          <ShuffleIcon className="w-4 h-4" />
-          Сгенерировать пары
-        </Button>
-
-        <Button
-          disabled={!allPlayersDistributed}
-          onClick={() => {
-            onConfirmPairs();
-            console.log("[HatPreparePairsPage] Pairs confirmed:", pairs);
-          }}
-          className="bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Подтвердить пары ({pairs.length}/{players.length})
-        </Button>
-      </div>
-
-      {!allPlayersDistributed && (
-        <div className="w-full text-center mt-2">
-          <p className="text-orange-600 text-sm">
-            {pairs.length} из {players.length} пар создано
-          </p>
-          <p className="text-orange-600 text-xs">
-            Каждый участник должен быть ровно один раз объясняющим и отгадывающим 
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            Создавайте пары "объясняющий → отгадывающий". Перетаскивайте игроков.
           </p>
         </div>
-      )}
 
-      <div className="mt-6 text-right w-full">
-        <button
-          onClick={() => {
-            onEndGame();
-            console.log("[HatPreparePairsPage] Game ended early by user");
-          }}
-          className="text-red-600 text-sm hover:underline"
-        >
-          Закончить игру
-        </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card className="w-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-12 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 rounded-xl font-semibold text-gray-700 dark:text-gray-300">
+                    <div className="col-span-1">#</div>
+                    <div className="col-span-5">Объясняющий</div>
+                    <div className="col-span-5">Отгадывающий</div>
+                    <div className="col-span-1"></div>
+                  </div>
+
+                  {pairs.map((pair, index) => (
+                    <div
+                      key={pair.explainer.id}
+                      className="grid grid-cols-12 gap-4 items-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all cursor-move"
+                      draggable
+                      onDragStart={() => handlePairDragStart(index)}
+                      onDragOver={(e) => handlePairDragOver(e, index)}
+                      onDrop={(e) => handlePairDrop(e, index)}
+                      onDragEnd={() => setDraggedPairIndex(null)}
+                    >
+                      <div className="col-span-1 flex items-center gap-2">
+                        <GripVerticalIcon className="w-5 h-5 text-gray-400 cursor-grab" />
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{index + 1}</span>
+                      </div>
+
+                      <div className="col-span-5">
+                        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+                          <Avatar className="w-10 h-10 border-2 border-white dark:border-gray-700">
+                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                              {pair.explainer.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-semibold text-gray-800 dark:text-white">{pair.explainer.name}</span>
+                        </div>
+                      </div>
+
+                      <div className="col-span-5">
+                        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg">
+                          <Avatar className="w-10 h-10 border-2 border-white dark:border-gray-700">
+                            <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                              {pair.guesser.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-semibold text-gray-800 dark:text-white">{pair.guesser.name}</span>
+                        </div>
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePair(pair.explainer.id)}
+                          className="w-8 h-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {availableExplainers.map((explainer) => {
+                    const existingPair = pairs.find((p) => p.explainer.id === explainer.id);
+                    return (
+                      <div
+                        key={explainer.id}
+                        className="grid grid-cols-12 gap-4 items-center p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600"
+                      >
+                        <div className="col-span-1">
+                          <span className="text-gray-400">?</span>
+                        </div>
+
+                        <div className="col-span-5">
+                          <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg">
+                            <Avatar className="w-10 h-10 border-2 border-white dark:border-gray-700">
+                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                                {explainer.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-semibold text-gray-800 dark:text-white">{explainer.name}</span>
+                          </div>
+                        </div>
+
+                        <div
+                          className="col-span-5"
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => handleDropOnSlot(explainer.id)}
+                        >
+                          <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900 rounded-lg border-2 border-dashed border-green-300 dark:border-green-700 hover:border-green-500 dark:hover:border-green-500 transition-all min-h-[56px] flex items-center justify-center">
+                            {existingPair ? (
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-8 h-8">
+                                  <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                                    {existingPair.guesser.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-semibold text-gray-800 dark:text-white">
+                                  {existingPair.guesser.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400 text-center">
+                                Перетащите отгадывающего сюда
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="col-span-1"></div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {availableExplainers.length === 0 && pairs.length > 0 && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                    <p className="text-center font-bold text-green-600 dark:text-green-400">
+                      Все игроки распределены!
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
+              <CardContent className="p-6 space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={handleShuffle}
+                  className="w-full h-12 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 border-2 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl font-semibold"
+                >
+                  <ShuffleIcon className="w-5 h-5 mr-2" />
+                  Сгенерировать пары
+                </Button>
+
+                <Button
+                  disabled={!allPlayersDistributed}
+                  onClick={() => {
+                    onConfirmPairs();
+                    console.log("[HatPreparePairsPage] Pairs confirmed:", pairs);
+                  }}
+                  className="w-full h-12 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Подтвердить пары ({pairs.length}/{players.length})
+                </Button>
+
+                
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                  Доступные отгадывающие
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                  Перетащите игрока в пару к объясняющему
+                </p>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {availableGuessers.map((player) => (
+                    <div
+                      key={player.id}
+                      draggable
+                      onDragStart={() => handleDragStart(player)}
+                      onDragEnd={() => setDraggedPlayer(null)}
+                      className="cursor-grab active:cursor-grabbing transform active:scale-95 transition-all"
+                    >
+                      <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800 rounded-xl border border-green-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 hover:shadow-lg transition-all">
+                        <Avatar className="w-12 h-12 mx-auto mb-2 border-2 border-white dark:border-gray-700">
+                          <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                            {player.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white text-center truncate">
+                          {player.name}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400 text-center mt-1">
+                          Отгадывающий
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {availableGuessers.length === 0 && (
+                  <div className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mt-4">
+                    <p className="text-center text-gray-500 dark:text-gray-400">
+                      Все игроки уже в парах
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="text-right">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  onEndGame();
+                  console.log("[HatPreparePairsPage] Game ended early by user");
+                }}
+                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-semibold transition-all"
+              >
+                Закончить игру
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

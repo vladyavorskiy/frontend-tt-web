@@ -253,60 +253,71 @@ export default function HomePage({showToast}) {
 
 if (!Cookies.get('token') && isAuthChecked) {
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-50">
-      <div className="flex flex-col max-w-lg w-full items-start gap-4">
-        
-        <Card className="w-full rounded-2xl shadow-lg">
-          <CardHeader className="gap-2 pb-6 text-center">
-            <CardTitle className="text-2xl font-bold">
-              Добро пожаловать
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              {isRegisterMode ? 'Создайте аккаунт' : 'Войдите, чтобы продолжить'}
-            </CardDescription>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-8">
+            <div className="text-center space-y-2">
+              <CardTitle className="text-3xl font-bold">
+                TableTime
+              </CardTitle>
+              <CardDescription className="text-blue-100 text-lg">
+                {isRegisterMode ? 'Создайте аккаунт' : 'Войдите, чтобы продолжить'}
+              </CardDescription>
+            </div>
           </CardHeader>
 
-          <CardContent className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="username">Имя</Label>
+          <CardContent className="p-8 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="font-semibold text-gray-700 dark:text-gray-300">
+                Имя пользователя
+              </Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="Введите имя"
                 value={authData.username}
                 onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+                className="h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Пароль</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="font-semibold text-gray-700 dark:text-gray-300">
+                Пароль
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Введите пароль"
                 value={authData.password}
                 onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                className="h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-red-600 dark:text-red-400 text-sm text-center">{error}</p>
+              </div>
+            )}
 
             <Button 
               onClick={isRegisterMode ? handleRegister : handleLogin}
-              className="w-full"
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
             >
               {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
             </Button>
 
-            <div className="flex flex-col items-center w-full">
-              <span className="text-sm">
-                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
-              </span>
+            <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-gray-600 dark:text-gray-400">
+                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
+              </p>
               <button 
                 onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-sm text-blue-600 hover:underline transition-all"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-lg transition-colors mt-2"
               >
-                {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
+                {isRegisterMode ? 'Войти в аккаунт' : 'Создать аккаунт'}
               </button>
             </div>
           </CardContent>
@@ -317,77 +328,128 @@ if (!Cookies.get('token') && isAuthChecked) {
 }
 
 return (
-  <div className="h-screen flex items-center justify-center bg-gray-50">
-    <div className="flex flex-col max-w-lg w-full items-start gap-16">
-      <Card className="w-full rounded-2xl shadow-lg">
-        <CardContent className="p-8">
-          <div className="flex flex-col gap-2 mb-6">
-            <h2 className="text-2xl font-bold">
-              Добро пожаловать, {name}!
-            </h2>
-          </div>
-          
-          <Button
-            onClick={() => setIsProfileOpen(true)}
-            variant="outline"
-            className="mb-6"
-          >
-            Профиль
-          </Button>
-
-          <Button 
-            onClick={createRoom}
-            className="w-full mb-6"
-          >
-            Создать комнату
-          </Button>
-
-          <div className="relative mb-6">
-            <Separator />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2">
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="w-full max-w-2xl">
+      <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="text-3xl font-bold">TableTime</CardTitle>
+                <CardDescription className="text-blue-100 text-lg">
+                  Игра в слова онлайн
+                </CardDescription>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-end gap-3 mb-6">
-            <div className="flex-1 flex flex-col gap-2">
-              <Label htmlFor="roomId">ID комнаты</Label>
-              <Input
-                id="roomId"
-                type="text"
-                placeholder="Введите ID комнаты"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-              />
-            </div>
-
-            <Button 
-              onClick={joinById}
+            <Button
+              onClick={() => setIsProfileOpen(true)}
               variant="outline"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
             >
-              Присоединиться
+              <i className="fas fa-user mr-2"></i>Профиль
             </Button>
           </div>
+        </CardHeader>
 
-          {activeRoom && (
-            <Button 
-              onClick={goToActiveRoom}
-              variant="secondary"
-              className="w-full mb-6"
-            >
-              Перейти в активную комнату
-            </Button>
+        <CardContent className="p-8">
+          <div className="text-center space-y-2 mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+              Добро пожаловать, <span className="text-blue-600 dark:text-blue-400">{name}</span>!
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              {activeRoom 
+                ? 'У вас есть активная комната'
+                : 'Создайте комнату или присоединитесь к существующей'}
+            </p>
+          </div>
+
+          {activeRoom ? (
+            <div className="space-y-6">
+              <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border-2 border-yellow-200 dark:border-yellow-800">
+                
+                <Button 
+                  onClick={goToActiveRoom}
+                  className="w-full h-14 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                >
+                  <i className="fas fa-door-open mr-2"></i>
+                  Вернуться в комнату
+                </Button>
+
+                <div className="flex items-center justify-between mt-8">
+                  <div>
+                    <p className="text-yellow-600 dark:text-yellow-500">
+                      Вы уже находитесь в комнате
+                    </p>
+                  </div>
+                  <div className="px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg">
+                    <code className="font-mono font-bold text-yellow-700 dark:text-yellow-400">
+                      {activeRoom}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <Button 
+                onClick={createRoom}
+                className="w-full h-16 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl text-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                <i className="fas fa-plus-circle mr-3"></i>
+                Создать комнату
+              </Button>
+
+              <div className="relative">
+                <Separator />
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-4">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">или</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label htmlFor="roomId" className="font-semibold text-gray-700 dark:text-gray-300 text-lg">
+                  Присоединиться по ID
+                </Label>
+                <div className="flex gap-3">
+                  <Input
+                    id="roomId"
+                    type="text"
+                    placeholder="Введите ID комнаты"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    className="h-12 flex-1 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
+                  />
+                  <Button 
+                    onClick={joinById}
+                    className="h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-bold"
+                  >
+                    <i className="fas fa-sign-in-alt mr-2"></i>
+                    Войти
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
 
-          <div className="flex flex-col items-center pt-4 border-t">
+          <div className="pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 text-center">
             <Button 
               onClick={handleLogout} 
               variant="ghost"
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-6 py-2 rounded-lg font-semibold transition-all"
             >
+              <i className="fas fa-sign-out-alt mr-2"></i>
               Выйти из аккаунта
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        onSave={updateProfile}
+      />
     </div>
   </div>
 );

@@ -7,6 +7,8 @@ import RoomPage from './pages/RoomPage';
 import GamePage from './pages/GamePage.jsx';
 import * as RadixToast from '@radix-ui/react-toast';
 import { Toast, ToastViewport } from './components/ui/Toast';
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 
 function AppWrapper() {
   const [toast, setToast] = useState({ open: false, message: '', type: 'default' });

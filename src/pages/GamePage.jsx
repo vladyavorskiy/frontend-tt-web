@@ -158,35 +158,57 @@ export default function GamePage({showToast }) {
     console.log('[GamePage] end_game_early emitted');
   };
 
-  if (gamePhase === "setup") {
-    if (!isCreator) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Ожидайте создателя...</h2>
-            <p className="text-gray-600">Создатель комнаты настраивает игру</p>
+if (gamePhase === "setup") {
+  if (!isCreator) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center space-y-6 p-8">
+          <div className="inline-block p-6 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+              Ожидайте создателя...
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Создатель комнаты настраивает игру
+            </p>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
         </div>
-      );
-    }
-    return <HatSetupPage socket={socket} mode={mode} setMode={setMode} type={type} setType={setType} roundTime={roundTime} setRoundTime={setRoundTime} wordsPerPlayer={wordsPerPlayer} setWordsPerPlayer={setWordsPerPlayer} />;
+      </div>
+    );
   }
+  return <HatSetupPage socket={socket} mode={mode} setMode={setMode} type={type} setType={setType} roundTime={roundTime} setRoundTime={setRoundTime} wordsPerPlayer={wordsPerPlayer} setWordsPerPlayer={setWordsPerPlayer} />;
+}
 
   if (gamePhase === "enterWords") {
     return <HatEnterWordsPage socket={socket} userWords={userWords} setUserWords={setUserWords} wordsPerPlayer={wordsPerPlayer} waitingStatus={waitingStatus} players={players} />;
   }
 
   if (gamePhase === "prepare_round") {
-    if (!isCreator) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Ожидайте создателя...</h2>
-            <p className="text-gray-600">Создатель комнаты настраивает пары/команды</p>
+  if (!isCreator) {
+    return (
+       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center space-y-6 p-8">
+          <div className="inline-block p-6 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+              Ожидайте создателя...
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Создатель комнаты настраивает пары/команды
+            </p>
+          </div>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
     return (
       <HatPreparePairsPage 
         players={players}
@@ -205,29 +227,34 @@ export default function GamePage({showToast }) {
   }
 
   if (gamePhase === "game") {
-    return (
-      <div className="p-6 flex flex-col gap-8 max-w-4xl mx-auto">
-        <HatRoundPage 
-          userId={userId}
-          round={round}
-          timer={timer}
-          activePlayer={activePlayer}
-          guesser={guesser}
-          currentWord={currentWord}
-          isCurrentExplainer={isCurrentExplainer}
-          players={players}
-          mode={mode}
-          getPlayerName={getPlayerName}
-          onReady={handleReady}
-          onWordGuessed={markWordGuessed}
-        />
-        <HatScoreboardPage players={players} scores={scores} getPlayerName={getPlayerName} onEndGame={endGameEarly} />
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="space-y-8 max-w-6xl mx-auto">
+          <HatRoundPage 
+            userId={userId}
+            round={round}
+            timer={timer}
+            activePlayer={activePlayer}
+            guesser={guesser}
+            currentWord={currentWord}
+            isCurrentExplainer={isCurrentExplainer}
+            players={players}
+            mode={mode}
+            getPlayerName={getPlayerName}
+            onReady={handleReady}
+            onWordGuessed={markWordGuessed}
+          />
+          <HatScoreboardPage players={players} scores={scores} getPlayerName={getPlayerName} onEndGame={endGameEarly} />
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (gamePhase === "finished") {
-    return (
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
       <HatFinishPage
         mode={mode}
         players={players}
@@ -237,8 +264,22 @@ export default function GamePage({showToast }) {
         navigate={navigate}
         roomId={roomId}
       />
-    );
-  }
+    </div>
+  );
+}
 
-  return <p className="p-6">Ожидание игры...</p>;
+  return (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="text-center space-y-6 p-8">
+      <div className="inline-block p-6 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+          Загрузка игры...
+        </h2>
+        <p className="text-gray-600 dark:text-gray-300">
+          Подготовка игрового пространства
+        </p>
+      </div>
+    </div>
+  </div>
+);
 }
