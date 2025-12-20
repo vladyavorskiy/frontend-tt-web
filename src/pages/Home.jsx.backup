@@ -198,20 +198,15 @@ export default function HomePage({showToast}) {
     e.preventDefault();
     if (!saveNameToSession()) return;
     if (!roomId.trim()) return showToast('default', "Введите ID комнаты");
-    let roomIdToJoin = roomId.trim();
-    // Если пользователь ввел URL, извлекаем ID
-    if (roomIdToJoin.includes("://")) {
-      roomIdToJoin = roomIdToJoin.split("/").filter(Boolean).pop();
-    }
 
     const userId = Number(sessionStorage.getItem("userId"));
     const sessionId = sessionStorage.getItem("sessionId");
 
-    sessionStorage.setItem("activeRoom", roomIdToJoin);
-    navigate(`/room/${roomIdToJoin}`);
+    sessionStorage.setItem("activeRoom", roomId.trim());
+    navigate(`/room/${roomId.trim()}`);
 
     if (!socket.connected) socket.connect();
-    socket.emit("join_room", { roomId: roomIdToJoin, userId, sessionId });
+    socket.emit("join_room", { roomId: roomId.trim(), userId, sessionId });
   };
 
   const goToActiveRoom = () => {

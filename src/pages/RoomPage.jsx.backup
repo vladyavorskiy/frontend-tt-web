@@ -175,44 +175,8 @@ export default function RoomPage({showToast}) {
   };
 
   const copyRoomId = () => {
-    const textToCopy = roomId;
-    
-    // Пробуем современный API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(textToCopy)
-        .then(() => {
-          showToast('success', `ID комнаты ${textToCopy} скопирован`);
-        })
-        .catch(err => {
-          console.warn('Clipboard API error:', err);
-          fallbackCopy(textToCopy);
-        });
-    } else {
-      fallbackCopy(textToCopy);
-    }
-  };
-  
-  const fallbackCopy = (text) => {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.opacity = '0';
-    document.body.appendChild(textArea);
-    textArea.select();
-    
-    try {
-      const successful = document.execCommand('copy');
-      if (successful) {
-        showToast('success', `ID комнаты ${text} скопирован`);
-      } else {
-        showToast('error', 'Не удалось скопировать ID комнаты');
-      }
-    } catch (err) {
-      console.error('Fallback copy error:', err);
-      showToast('error', 'Ошибка при копировании ID комнаты');
-    }
-    
-    document.body.removeChild(textArea);
+    navigator.clipboard.writeText(roomId);
+    showToast('success', `ID комнаты ${roomId} скопирован`);
   };
 
   if (gameStarted) {
