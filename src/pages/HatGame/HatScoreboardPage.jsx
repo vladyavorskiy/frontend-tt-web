@@ -1,7 +1,4 @@
 import React, { useMemo } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export const HatScoreboardPage = ({
   players,
@@ -29,107 +26,69 @@ export const HatScoreboardPage = ({
     return Math.max(...values);
   }, [scores]);
 
-  console.log("[HatScoreboardPage] Sorted players with scores:", 
-    sortedPlayers.map(p => ({
-      name: getPlayerName(p.id),
-      score: Number(scores[p.id]) || 0,
-      isLeader: (Number(scores[p.id]) || 0) === maxScore
-    }))
-  );
-
   return (
-    <section className="w-full">
-      <Card className="w-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden">
-        <CardContent className="p-6">
-          <div className="text-center mb-8">
-            <div className="inline-block p-4 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-2xl mb-4">
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
-                Победные очки
-              </h2>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              Текущие результаты игры
-            </p>
-          </div>
+    <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
+      <div className="bg-[#1E293B] px-4 py-3">
+        <h2 className="text-sm font-semibold text-white">Победные очки</h2>
+        <p className="text-[10px] text-[#94A3B8] mt-0.5">Текущие результаты</p>
+      </div>
 
-          <div className="space-y-3">
-            {sortedPlayers.map((p, index) => {
-              const playerScore = Number(scores[p.id]) || 0;
-              const isLeader = playerScore === maxScore && maxScore > 0;
-              
-              return (
-                <div
-                  key={p.id}
-                  className={`flex items-center justify-between p-4 rounded-xl transition-all transform hover:scale-[1.02] ${
-                    isLeader 
-                      ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-2 border-yellow-300 dark:border-yellow-700" 
-                      : "bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Avatar className={`w-12 h-12 ${isLeader ? 'ring-2 ring-yellow-400 dark:ring-yellow-600' : ''}`}>
-                        <AvatarFallback className={`font-bold text-lg ${
-                          index === 0 ? "bg-gradient-to-r from-yellow-500 to-orange-500 text-white" :
-                          index === 1 ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white" :
-                          index === 2 ? "bg-gradient-to-r from-amber-700 to-amber-800 text-white" :
-                          "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
-                        }`}>
-                          {index + 1}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isLeader && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                          <span className="text-xs text-white">👑</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-gray-800 dark:text-white text-lg">
-                        {getPlayerName(p.id)}
-                      </span>
-                      {isLeader && (
-                        <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
-                          Лидер игры
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div className={`px-4 py-2 rounded-lg ${
-                      isLeader 
-                        ? "bg-gradient-to-r from-yellow-500 to-orange-500" 
-                        : "bg-gradient-to-r from-blue-500 to-purple-500"
+      <div className="p-4">
+        <div className="space-y-2">
+          {sortedPlayers.map((p, index) => {
+            const playerScore = Number(scores[p.id]) || 0;
+            const isLeader = playerScore === maxScore && maxScore > 0;
+
+            return (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between p-3 rounded-md transition-all ${
+                  isLeader
+                    ? "bg-[#FEF9C3] border border-[#FDE047]"
+                    : "bg-[#F8FAFC] border border-[#E2E8F0]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      index === 0 ? "bg-[#FBBF24]" :
+                      index === 1 ? "bg-[#94A3B8]" :
+                      index === 2 ? "bg-[#B45309]" :
+                      "bg-[#3B82F6]"
                     }`}>
-                      <span className="text-2xl font-bold text-white">
-                        {playerScore}
-                      </span>
+                      <span className="text-xs font-bold text-white">{index + 1}</span>
                     </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {playerScore} очков
-                    </span>
+                    {isLeader && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#FBBF24] rounded-full flex items-center justify-center text-[8px]">
+                        👑
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-[#1E293B]">{getPlayerName(p.id)}</span>
+                    {isLeader && (
+                      <span className="text-[8px] text-[#B45309] block">Лидер</span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-gray-600 dark:text-gray-400 text-sm">
-                Всего игроков: <span className="font-bold">{sortedPlayers.length}</span>
+                <div className="px-3 py-1 bg-[#3B82F6] rounded-md">
+                  <span className="text-sm font-bold text-white">{playerScore}</span>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                className="border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl px-6 py-3 font-semibold transition-all"
-                onClick={onEndGame}
-              >
-                Закончить игру
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </section>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-between items-center">
+          <span className="text-[10px] text-[#64748B]">Всего: {sortedPlayers.length}</span>
+          <button
+            className="text-[#EF4444] hover:text-[#DC2626] text-xs font-medium transition-colors"
+            onClick={onEndGame}
+          >
+            Закончить игру
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
