@@ -1,15 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import socket from '../socketClient';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { CopyIcon, SendIcon, AlertCircle, Users, MessageSquare } from "lucide-react";
 
-export default function RoomPage({showToast}) {
+export default function RoomPage({ showToast }) {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
 
@@ -100,15 +93,15 @@ export default function RoomPage({showToast}) {
       room_closed: () => {
         console.warn('[RoomPage] room_closed');
         setRoomClosed(true);
-        addMessage({ 
-          from: { name: 'Система' }, 
-          text: 'Комната закрыта создателем', 
-          createdAt: new Date().toISOString() 
+        addMessage({
+          from: { name: 'Система' },
+          text: 'Комната закрыта создателем',
+          createdAt: new Date().toISOString()
         });
         sessionStorage.removeItem('activeRoom');
-        setTimeout(() => { 
-          showToast('Комната была закрыта создателем'); 
-          navigate('default',); 
+        setTimeout(() => {
+          showToast('default', 'Комната была закрыта создателем');
+          navigate('/');
         }, 1000);
       },
 
@@ -131,7 +124,9 @@ export default function RoomPage({showToast}) {
 
   }, [roomId, navigate, userId, userName, sessionId]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   const sendMessage = (e) => {
     e.preventDefault();
@@ -177,11 +172,10 @@ export default function RoomPage({showToast}) {
   const copyRoomId = () => {
     const textToCopy = roomId;
     
-    // Пробуем современный API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(textToCopy)
         .then(() => {
-          showToast('success', `ID комнаты ${textToCopy} скопирован`);
+          showToast('success', `ID комнаты скопирован`);
         })
         .catch(err => {
           console.warn('Clipboard API error:', err);
@@ -203,7 +197,7 @@ export default function RoomPage({showToast}) {
     try {
       const successful = document.execCommand('copy');
       if (successful) {
-        showToast('success', `ID комнаты ${text} скопирован`);
+        showToast('success', `ID комнаты скопирован`);
       } else {
         showToast('error', 'Не удалось скопировать ID комнаты');
       }
@@ -217,271 +211,214 @@ export default function RoomPage({showToast}) {
 
   if (gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <div className="animate-spin">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Переход к игре...
-          </h2>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-[#1E293B]">Переход к игре...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl p-6 mb-8">
+    <div className="min-h-screen bg-[#F8FAFC] py-6" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm p-4 mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                  Комната: {roomId}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-8 h-8 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-[#1E293B]">Комната</h1>
+                <div className="flex items-center gap-1">
+                  <code className="font-mono text-xs bg-[#F1F5F9] px-2 py-1 rounded text-[#1E293B]">
+                    {roomId}
+                  </code>
+                  <button
+                    className="w-6 h-6 hover:bg-[#F1F5F9] rounded flex items-center justify-center transition-colors"
                     onClick={copyRoomId}
                   >
-                    <CopyIcon className="w-4 h-4" />
-                  </Button>
-                </h1>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <Users className="w-4 h-4" />
-                    <span>{participants.length} участников</span>
-                  </div>
-                  {isCreator && (
-                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                      Создатель
-                    </Badge>
-                  )}
+                    <span className="text-xs text-[#64748B]">📋</span>
+                  </button>
                 </div>
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-xs text-[#64748B]">{participants.length} участников</span>
+                {isCreator && (
+                  <span className="px-2 py-0.5 bg-[#3B82F6] text-white text-[10px] rounded">Создатель</span>
+                )}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {isCreator && !roomClosed && (
-                <Button
+                <button
                   onClick={startGame}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+                  className="h-8 px-3 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-medium rounded-md transition-colors"
                 >
                   Начать игру
-                </Button>
+                </button>
               )}
               
               {!roomClosed && !isCreator && (
-                <Button
+                <button
                   onClick={leaveRoom}
-                  variant="outline"
                   disabled={leaving}
-                  className="border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-xl font-semibold"
+                  className="h-8 px-3 border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#1E293B] text-xs font-medium rounded-md transition-colors"
                 >
                   {leaving ? 'Выходим...' : 'Выйти'}
-                </Button>
+                </button>
               )}
               
               {isCreator && !roomClosed && (
-                <Button
+                <button
                   onClick={deleteRoom}
-                  className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl font-bold"
+                  className="h-8 px-3 bg-[#EF4444] hover:bg-[#DC2626] text-white text-xs font-medium rounded-md transition-colors"
                 >
-                  Удалить комнату
-                </Button>
+                  Удалить
+                </button>
               )}
 
-              <Link to="/">
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-300 rounded-xl border-gray-300 dark:border-gray-600"
-                >
-                  Главная
-                </Button>
-              </Link>
+              <button
+                onClick={() => navigate('/')}
+                className="h-8 px-3 border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#1E293B] text-xs font-medium rounded-md transition-colors"
+              >
+                Главная
+              </button>
             </div>
           </div>
 
           {leaveError && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <AlertCircle className="w-4 h-4" />
-                <span>Ошибка: {leaveError}</span>
-              </div>
+            <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600 text-xs">Ошибка: {leaveError}</p>
             </div>
           )}
         </div>
 
         {roomClosed ? (
           <div className="text-center py-12">
-            <div className="inline-block p-8 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl border-2 border-red-200 dark:border-red-800">
-              <h2 className="text-3xl font-bold text-red-600 dark:text-red-400 mb-4">
-                Комната закрыта
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Создатель комнаты завершил сессию
-              </p>
-              <Button
+            <div className="bg-white border border-[#E2E8F0] rounded-lg p-8 max-w-md mx-auto">
+              <h2 className="text-lg font-semibold text-[#1E293B] mb-2">Комната закрыта</h2>
+              <p className="text-xs text-[#64748B] mb-4">Создатель комнаты завершил сессию</p>
+              <button
                 onClick={() => navigate('/')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl"
+                className="h-8 px-4 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-xs font-medium rounded-md transition-colors"
               >
                 Вернуться на главную
-              </Button>
+              </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Чат */}
-            <div className="lg:col-span-2">
-              <Card className="h-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-6">
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-6 h-6" />
-                    <CardTitle className="text-2xl font-bold">Чат комнаты</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[400px] p-6">
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center py-12">
-                          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MessageSquare className="w-8 h-8 text-gray-400" />
-                          </div>
-                          <p className="text-gray-500 dark:text-gray-400">
-                            Начните общение! Напишите первое сообщение.
-                          </p>
-                        </div>
-                      ) : (
-                        messages.map((m, i) => (
-                          <div key={i} className="flex items-start gap-3">
-                            <Avatar className="w-10 h-10 border-2 border-white dark:border-gray-700">
-                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                                {(m.from?.name || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              {m.from?.name === 'Система' ? (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                                  {m.text}
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-gray-800 dark:text-white">
-                                      {m.from?.name}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {new Date(m.createdAt).toLocaleTimeString('ru-RU', { 
-                                        hour: '2-digit', 
-                                        minute: '2-digit' 
-                                      })}
-                                    </span>
-                                  </div>
-                                  <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
-                                    {m.text}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                      <div ref={messagesEndRef} />
+          <div className="grid grid-cols-12 gap-6">
+            {/* Chat */}
+            <div className="col-span-12 lg:col-span-8">
+              <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm h-[600px] flex flex-col">
+                <div className="bg-[#1E293B] px-4 py-2">
+                  <h2 className="text-xs font-semibold text-white">Чат</h2>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-xs text-[#64748B]">Нет сообщений</p>
                     </div>
-                  </ScrollArea>
-                  
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                    <form onSubmit={sendMessage} className="flex gap-2">
-                      <Input
-                        value={msg}
-                        onChange={e => setMsg(e.target.value)}
-                        placeholder="Напишите сообщение..."
-                        className="flex-1 h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
-                        disabled={roomClosed || leaving}
-                      />
-                      <Button 
-                        type="submit"
-                        size="icon"
-                        className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600"
-                        disabled={roomClosed || leaving || !msg.trim()}
-                      >
-                        <SendIcon className="w-5 h-5" />
-                      </Button>
-                    </form>
-                  </div>
-                </CardContent>
-              </Card>
+                  ) : (
+                    messages.map((m, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="w-5 h-5 bg-[#F1F5F9] rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-medium text-[#1E293B]">
+                            {(m.from?.name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          {m.from?.name === 'Система' ? (
+                            <p className="text-[10px] text-[#64748B] italic">{m.text}</p>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[10px] font-medium text-[#1E293B]">{m.from?.name}</span>
+                                <span className="text-[8px] text-[#94A3B8]">
+                                  {new Date(m.createdAt).toLocaleTimeString('ru-RU', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-[#1E293B] bg-[#F8FAFC] p-2 rounded">{m.text}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+                
+                <div className="border-t border-[#E2E8F0] p-3">
+                  <form onSubmit={sendMessage} className="flex gap-2">
+                    <input
+                      value={msg}
+                      onChange={e => setMsg(e.target.value)}
+                      placeholder="Напишите сообщение..."
+                      className="flex-1 h-8 px-3 bg-white border border-[#CBD5E1] rounded-md text-xs focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
+                      disabled={roomClosed || leaving}
+                    />
+                    <button 
+                      type="submit"
+                      className="w-8 h-8 bg-[#3B82F6] hover:bg-[#2563EB] text-white rounded-md flex items-center justify-center disabled:opacity-50 transition-colors"
+                      disabled={roomClosed || leaving || !msg.trim()}
+                    >
+                      <span className="text-xs">→</span>
+                    </button>
+                  </form>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <Card className="h-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-6 h-6" />
-                    <CardTitle className="text-2xl font-bold">Участники</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    {participants.map(p => {
+            {/* Participants */}
+            <div className="col-span-12 lg:col-span-4">
+              <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm">
+                <div className="bg-[#1E293B] px-4 py-2">
+                  <h2 className="text-xs font-semibold text-white">Участники</h2>
+                </div>
+                <div className="p-3 space-y-1 max-h-[540px] overflow-y-auto">
+                  {participants.length === 0 ? (
+                    <p className="text-xs text-[#64748B] text-center py-4">Нет участников</p>
+                  ) : (
+                    participants.map(p => {
                       const isCurrentUser = p.userId === userId;
                       const isRoomCreator = p.isCreator;
 
                       return (
                         <div
                           key={p.sessionId}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                            isCurrentUser 
-                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700'
-                              : 'bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700'
+                          className={`flex items-center justify-between p-2 rounded-md transition-colors ${
+                            isCurrentUser ? 'bg-[#F1F5F9]' : 'hover:bg-[#F8FAFC]'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarFallback className={
-                                isCurrentUser ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white" : 
-                                isRoomCreator ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white" : 
-                                "bg-gradient-to-r from-gray-400 to-gray-500 text-white"
-                              }>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              isCurrentUser ? 'bg-[#10B981]' : isRoomCreator ? 'bg-[#3B82F6]' : 'bg-[#94A3B8]'
+                            }`}>
+                              <span className="text-[8px] font-medium text-white">
                                 {(p.name || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold text-gray-800 dark:text-white">
-                                {p.name}
-                              </p>
-                              {isRoomCreator && (
-                                <p className="text-xs text-blue-600 dark:text-blue-400">
-                                  Создатель комнаты
-                                </p>
-                              )}
+                              </span>
                             </div>
+                            <span className="text-xs font-medium text-[#1E293B]">{p.name}</span>
                           </div>
-
-                          {isCurrentUser && (
-                            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                              Вы
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {isRoomCreator && (
+                              <span className="text-[8px] text-[#3B82F6]">создатель</span>
+                            )}
+                            {isCurrentUser && (
+                              <span className="text-[8px] text-[#10B981]">вы</span>
+                            )}
+                          </div>
                         </div>
                       );
-                    })}
-                    
-                    {participants.length === 0 && (
-                      <div className="text-center py-8">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Users className="w-6 h-6 text-gray-400" />
-                        </div>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          Нет участников
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
