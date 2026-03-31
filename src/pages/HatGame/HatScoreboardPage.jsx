@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { TrophyIcon } from "../../components/GameIcons";
 
 export const HatScoreboardPage = ({
   players,
@@ -23,14 +24,14 @@ export const HatScoreboardPage = ({
 
   const maxScore = useMemo(() => {
     const values = Object.values(scores).map(s => Number(s) || 0);
-    return Math.max(...values);
+    return Math.max(...values, 0);
   }, [scores]);
 
   return (
-    <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-      <div className="bg-[#1E293B] px-4 py-3">
-        <h2 className="text-sm font-semibold text-white">Победные очки</h2>
-        <p className="text-[10px] text-[#94A3B8] mt-0.5">Текущие результаты</p>
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="px-6 py-5 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-black">Победные очки</h2>
+        <p className="text-xs text-gray-500 mt-0.5">Текущие результаты</p>
       </div>
 
       <div className="p-4">
@@ -38,40 +39,28 @@ export const HatScoreboardPage = ({
           {sortedPlayers.map((p, index) => {
             const playerScore = Number(scores[p.id]) || 0;
             const isLeader = playerScore === maxScore && maxScore > 0;
+            const rank = index + 1;
 
             return (
               <div
                 key={p.id}
-                className={`flex items-center justify-between p-3 rounded-md transition-all ${
+                className={`flex items-center justify-between p-3 rounded-lg transition-all ${
                   isLeader
-                    ? "bg-[#FEF9C3] border border-[#FDE047]"
-                    : "bg-[#F8FAFC] border border-[#E2E8F0]"
+                    ? "border border-yellow-400 bg-yellow-50"
+                    : "border border-gray-100 bg-white"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      index === 0 ? "bg-[#FBBF24]" :
-                      index === 1 ? "bg-[#94A3B8]" :
-                      index === 2 ? "bg-[#B45309]" :
-                      "bg-[#3B82F6]"
-                    }`}>
-                      <span className="text-xs font-bold text-white">{index + 1}</span>
-                    </div>
-                    {isLeader && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#FBBF24] rounded-full flex items-center justify-center text-[8px]">
-                        👑
-                      </div>
-                    )}
-                  </div>
+                  <RankBadge rank={rank} isLeader={isLeader} />
+                  <Avatar letter={getPlayerName(p.id).charAt(0).toUpperCase()} />
                   <div>
-                    <span className="text-xs font-medium text-[#1E293B]">{getPlayerName(p.id)}</span>
+                    <span className="text-sm font-medium text-gray-900">{getPlayerName(p.id)}</span>
                     {isLeader && (
-                      <span className="text-[8px] text-[#B45309] block">Лидер</span>
+                      <span className="text-[10px] text-amber-600 block">Лидер</span>
                     )}
                   </div>
                 </div>
-                <div className="px-3 py-1 bg-[#3B82F6] rounded-md">
+                <div className="px-3 py-1 bg-blue-500 rounded-full">
                   <span className="text-sm font-bold text-white">{playerScore}</span>
                 </div>
               </div>
@@ -79,10 +68,10 @@ export const HatScoreboardPage = ({
           })}
         </div>
 
-        <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex justify-between items-center">
-          <span className="text-[10px] text-[#64748B]">Всего: {sortedPlayers.length}</span>
+        <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+          <span className="text-xs text-gray-500">Всего: {sortedPlayers.length}</span>
           <button
-            className="text-[#EF4444] hover:text-[#DC2626] text-xs font-medium transition-colors"
+            className="text-red-500 hover:text-red-600 text-sm font-medium transition-colors"
             onClick={onEndGame}
           >
             Закончить игру
@@ -92,3 +81,31 @@ export const HatScoreboardPage = ({
     </div>
   );
 };
+
+function RankBadge({ rank, isLeader }) {
+  if (rank === 1) {
+    return (
+      <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0">
+        <TrophyIcon width={16} height={16} color="white" />
+      </div>
+    );
+  }
+  
+  let bgColor = "bg-blue-500";
+  if (rank === 2) bgColor = "bg-gray-400";
+  if (rank === 3) bgColor = "bg-amber-600";
+  
+  return (
+    <div className={`w-8 h-8 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
+      <span className="text-white font-bold text-sm">{rank}</span>
+    </div>
+  );
+}
+
+function Avatar({ letter }) {
+  return (
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
+      <span className="text-white text-sm font-semibold">{letter}</span>
+    </div>
+  );
+}

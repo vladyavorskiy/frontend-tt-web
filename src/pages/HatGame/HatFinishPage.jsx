@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
+import { TrophyIcon, TrophyLargeIcon } from "../../components/GameIcons";
 
 export const HatFinishPage = ({
   mode,
@@ -48,51 +49,59 @@ export const HatFinishPage = ({
     return [];
   }, [mode, scores, teams]);
 
+  const handlePlayAgain = () => {
+    navigate('/');
+  };
+
+  const handleReturnToRoom = () => {
+    navigate(`/room/${roomId}`);
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-8" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="bg-[#1E293B] px-5 py-4 text-center">
-            <h1 className="text-lg font-bold text-white">Игра завершена!</h1>
-            <p className="text-xs text-[#94A3B8] mt-0.5">Итоговые результаты</p>
+    <div className="flex-1 flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-2xl">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex flex-col items-center justify-center gap-3 px-8 py-8 bg-gradient-to-r from-yellow-400 to-yellow-500">
+            <div className="flex items-center justify-center">
+              <TrophyLargeIcon width={48} height={48} color="white" />
+            </div>
+            <h1 className="text-white font-bold text-3xl leading-9 text-center">
+              Игра завершена!
+            </h1>
+            <p className="text-white/90 text-sm">Итоговые результаты</p>
           </div>
 
-          <div className="p-5">
+          <div className="p-6">
             {mode === "solo" ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {sortedPlayers.map((p, index) => {
                   const playerScore = Number(scores[p.id]) || 0;
                   const isWinner = winners.includes(p.id);
+                  const rank = index + 1;
 
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between p-3 rounded-md ${
+                      className={`flex items-center justify-between p-4 rounded-lg ${
                         isWinner
-                          ? "bg-[#FEF9C3] border border-[#FDE047]"
-                          : "bg-[#F8FAFC] border border-[#E2E8F0]"
+                          ? "border border-yellow-400 bg-yellow-50"
+                          : "border border-gray-100 bg-white"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          index === 0 ? "bg-[#FBBF24]" :
-                          index === 1 ? "bg-[#94A3B8]" :
-                          index === 2 ? "bg-[#B45309]" :
-                          "bg-[#3B82F6]"
-                        }`}>
-                          <span className="text-xs font-bold text-white">{index + 1}</span>
-                        </div>
+                      <div className="flex items-center gap-4">
+                        <RankBadge rank={rank} isWinner={isWinner} />
+                        <Avatar letter={getPlayerName(p.id).charAt(0).toUpperCase()} size="lg" />
                         <div>
-                          <span className="text-sm font-medium text-[#1E293B]">
+                          <span className="text-base font-medium text-gray-900">
                             {p.name || getPlayerName(p.id)}
                           </span>
                           {isWinner && (
-                            <span className="text-[8px] text-[#B45309] block">Победитель</span>
+                            <span className="text-[10px] text-amber-600 block">Победитель</span>
                           )}
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-[#3B82F6] rounded-md">
-                        <span className="text-sm font-bold text-white">{playerScore}</span>
+                      <div className="px-4 py-1.5 bg-blue-500 rounded-full">
+                        <span className="text-base font-bold text-white">{playerScore}</span>
                       </div>
                     </div>
                   );
@@ -107,34 +116,34 @@ export const HatFinishPage = ({
                   return (
                     <div
                       key={idx}
-                      className={`rounded-md overflow-hidden ${
-                        isWinner ? "border-2 border-[#FBBF24]" : "border border-[#E2E8F0]"
+                      className={`rounded-lg overflow-hidden ${
+                        isWinner ? "border-2 border-yellow-400" : "border border-gray-200"
                       }`}
                     >
-                      <div className={`px-3 py-2 ${isWinner ? "bg-[#FEF9C3]" : "bg-[#F8FAFC]"}`}>
+                      <div className={`px-4 py-3 ${isWinner ? "bg-yellow-50" : "bg-gray-50"}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-[#3B82F6] rounded-full flex items-center justify-center">
-                              <span className="text-[8px] font-bold text-white">{idx + 1}</span>
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">{idx + 1}</span>
                             </div>
-                            <h3 className="text-xs font-semibold text-[#1E293B]">
-                              Команда {idx + 1} {isWinner && "🏆"}
+                            <h3 className="text-sm font-semibold text-gray-900">
+                              Команда {idx + 1}
                             </h3>
                           </div>
-                          <div className="px-2 py-1 bg-[#10B981] rounded">
+                          <div className="px-3 py-1 bg-green-500 rounded">
                             <span className="text-xs font-bold text-white">{teamScore}</span>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="bg-white p-3">
+                      <div className="bg-white p-4">
                         {team.map((id, playerIndex) => (
-                          <div key={id} className="flex items-center justify-between py-1">
+                          <div key={id} className="flex items-center justify-between py-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-[8px] text-[#64748B] w-4">{playerIndex + 1}</span>
-                              <span className="text-xs text-[#1E293B]">{getPlayerName(id)}</span>
+                              <span className="text-xs text-gray-400 w-5">{playerIndex + 1}</span>
+                              <span className="text-sm text-gray-700">{getPlayerName(id)}</span>
                             </div>
-                            <span className="text-xs font-medium text-[#3B82F6]">
+                            <span className="text-sm font-medium text-blue-600">
                               {Number(scores[id]) || 0}
                             </span>
                           </div>
@@ -146,10 +155,16 @@ export const HatFinishPage = ({
               </div>
             )}
 
-            <div className="mt-6 pt-4 border-t border-[#E2E8F0] text-center">
+            <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row gap-3">
               <button
-                className="h-9 px-6 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-xs font-medium rounded-md transition-colors"
-                onClick={() => navigate(`/room/${roomId}`)}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 font-semibold text-sm tracking-wider uppercase hover:bg-gray-50 transition-colors"
+                onClick={handlePlayAgain}
+              >
+                Играть ещё
+              </button>
+              <button
+                className="flex-1 px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm tracking-wider uppercase transition-colors"
+                onClick={handleReturnToRoom}
               >
                 Вернуться в комнату
               </button>
@@ -160,3 +175,32 @@ export const HatFinishPage = ({
     </div>
   );
 };
+
+function RankBadge({ rank, isWinner }) {
+  if (rank === 1) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0">
+        <TrophyIcon width={20} height={20} color="white" />
+      </div>
+    );
+  }
+  
+  let bgColor = "bg-blue-500";
+  if (rank === 2) bgColor = "bg-gray-400";
+  if (rank === 3) bgColor = "bg-amber-600";
+  
+  return (
+    <div className={`w-10 h-10 rounded-full ${bgColor} flex items-center justify-center flex-shrink-0`}>
+      <span className="text-white font-bold text-base">{rank}</span>
+    </div>
+  );
+}
+
+function Avatar({ letter, size = "lg" }) {
+  const sizeClass = size === "lg" ? "w-12 h-12 text-lg" : "w-8 h-8 text-sm";
+  return (
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0`}>
+      <span className="text-white font-bold">{letter}</span>
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import socket from '../socketClient';
+import Header from './Header';
 
 import HatSetupPage from './HatGame/HatSetupPage';
 import HatEnterWordsPage from './HatGame/HatEnterWordsPage';
@@ -14,12 +15,17 @@ export default function GamePage({ showToast }) {
   const { id: roomId } = useParams();
   const location = useLocation();
   const { userId, isCreator } = location.state || {};
+  const [user, setUser] = useState({ 
+    username: sessionStorage.getItem('userName') || '', 
+    id: userId,
+    email: ''
+  });
 
   const [gamePhase, setGamePhase] = useState("setup");
   const [type, setType] = useState("online");
   const [mode, setMode] = useState("solo");
-  const [roundTime, setRoundTime] = useState([10, 12, 5]);
-  const [wordsPerPlayer, setWordsPerPlayer] = useState(1);
+  const [roundTime, setRoundTime] = useState([30, 40, 20]);
+  const [wordsPerPlayer, setWordsPerPlayer] = useState(8);
 
   const [userWords, setUserWords] = useState([]);
   const [waitingStatus, setWaitingStatus] = useState({ submitted: 0, total: 0 });
@@ -36,6 +42,14 @@ export default function GamePage({ showToast }) {
 
   const timerRef = useRef(null);
   const isCurrentExplainer = activePlayer === userId;
+
+  const handleLogout = () => {
+    showToast('error', 'Во время игры нельзя выйти из аккаунта');
+  };
+
+  const handleProfileClick = () => {
+    showToast('info', 'Во время игры нельзя редактировать профиль');
+  };
 
   const getPlayerName = (id) => players.find((p) => p.id === id)?.name || "Неизвестный";
 
@@ -163,59 +177,71 @@ export default function GamePage({ showToast }) {
   if (gamePhase === "setup") {
     if (!isCreator) {
       return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
-          <div className="text-center">
-            <div className="bg-white border border-[#E2E8F0] rounded-lg p-6 max-w-sm">
-              <h2 className="text-base font-semibold text-[#1E293B] mb-2">Ожидайте создателя...</h2>
-              <p className="text-xs text-[#64748B] mb-4">Создатель комнаты настраивает игру</p>
-              <div className="flex justify-center gap-1">
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+        <div className="min-h-screen flex flex-col bg-gray-100">
+          <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center bg-white rounded-lg shadow-lg p-6 max-w-sm">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Ожидайте создателя...</h2>
+              <p className="text-sm text-gray-600 mb-4">Создатель комнаты настраивает игру</p>
+              <div className="flex justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
               </div>
             </div>
           </div>
         </div>
       );
     }
-    return <HatSetupPage
-      socket={socket}
-      mode={mode}
-      setMode={setMode}
-      type={type}
-      setType={setType}
-      roundTime={roundTime}
-      setRoundTime={setRoundTime}
-      wordsPerPlayer={wordsPerPlayer}
-      setWordsPerPlayer={setWordsPerPlayer}
-      showToast={showToast}
-    />;
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+        <HatSetupPage
+          socket={socket}
+          mode={mode}
+          setMode={setMode}
+          type={type}
+          setType={setType}
+          roundTime={roundTime}
+          setRoundTime={setRoundTime}
+          wordsPerPlayer={wordsPerPlayer}
+          setWordsPerPlayer={setWordsPerPlayer}
+          showToast={showToast}
+        />
+      </div>
+    );
   }
 
   if (gamePhase === "enterWords") {
-    return <HatEnterWordsPage
-      socket={socket}
-      userWords={userWords}
-      setUserWords={setUserWords}
-      wordsPerPlayer={wordsPerPlayer}
-      waitingStatus={waitingStatus}
-      players={players}
-      showToast={showToast}
-    />;
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+        <HatEnterWordsPage
+          socket={socket}
+          userWords={userWords}
+          setUserWords={setUserWords}
+          wordsPerPlayer={wordsPerPlayer}
+          waitingStatus={waitingStatus}
+          players={players}
+          showToast={showToast}
+        />
+      </div>
+    );
   }
 
   if (gamePhase === "prepare_round") {
     if (!isCreator) {
       return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
-          <div className="text-center">
-            <div className="bg-white border border-[#E2E8F0] rounded-lg p-6 max-w-sm">
-              <h2 className="text-base font-semibold text-[#1E293B] mb-2">Ожидайте создателя...</h2>
-              <p className="text-xs text-[#64748B] mb-4">Создатель комнаты настраивает пары/команды</p>
-              <div className="flex justify-center gap-1">
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+        <div className="min-h-screen flex flex-col bg-gray-100">
+          <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center bg-white rounded-lg shadow-lg p-6 max-w-sm">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Ожидайте создателя...</h2>
+              <p className="text-sm text-gray-600 mb-4">Создатель комнаты настраивает пары/команды</p>
+              <div className="flex justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
               </div>
             </div>
           </div>
@@ -223,51 +249,57 @@ export default function GamePage({ showToast }) {
       );
     }
     return (
-      <HatPreparePairsPage
-        players={players}
-        pairs={pairs}
-        setPairs={setPairs}
-        socket={socket}
-        mode={mode}
-        teams={teams}
-        setTeams={setTeams}
-        onConfirmPairs={confirmPairs}
-        onConfirmTeams={confirmTeams}
-        getPlayerName={getPlayerName}
-        onEndGame={endGameEarly}
-        showToast={showToast}
-      />
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+        <HatPreparePairsPage
+          players={players}
+          pairs={pairs}
+          setPairs={setPairs}
+          socket={socket}
+          mode={mode}
+          teams={teams}
+          setTeams={setTeams}
+          onConfirmPairs={confirmPairs}
+          onConfirmTeams={confirmTeams}
+          getPlayerName={getPlayerName}
+          onEndGame={endGameEarly}
+          showToast={showToast}
+        />
+      </div>
     );
   }
 
   if (gamePhase === "game") {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-8" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-8">
-              <HatRoundPage
-                userId={userId}
-                round={round}
-                timer={timer}
-                activePlayer={activePlayer}
-                guesser={guesser}
-                currentWord={currentWord}
-                isCurrentExplainer={isCurrentExplainer}
-                players={players}
-                mode={mode}
-                getPlayerName={getPlayerName}
-                onReady={handleReady}
-                onWordGuessed={markWordGuessed}
-              />
-            </div>
-            <div className="col-span-12 lg:col-span-4">
-              <HatScoreboardPage
-                players={players}
-                scores={scores}
-                getPlayerName={getPlayerName}
-                onEndGame={endGameEarly}
-              />
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+        <div className="flex-1 py-8">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 lg:col-span-8">
+                <HatRoundPage
+                  userId={userId}
+                  round={round}
+                  timer={timer}
+                  activePlayer={activePlayer}
+                  guesser={guesser}
+                  currentWord={currentWord}
+                  isCurrentExplainer={isCurrentExplainer}
+                  players={players}
+                  mode={mode}
+                  getPlayerName={getPlayerName}
+                  onReady={handleReady}
+                  onWordGuessed={markWordGuessed}
+                />
+              </div>
+              <div className="col-span-12 lg:col-span-4">
+                <HatScoreboardPage
+                  players={players}
+                  scores={scores}
+                  getPlayerName={getPlayerName}
+                  onEndGame={endGameEarly}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -277,7 +309,8 @@ export default function GamePage({ showToast }) {
 
   if (gamePhase === "finished") {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-8" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="min-h-screen flex flex-col bg-gray-100">
+        <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={false} />
         <HatFinishPage
           mode={mode}
           players={players}
@@ -292,11 +325,12 @@ export default function GamePage({ showToast }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="text-center">
-        <div className="bg-white border border-[#E2E8F0] rounded-lg p-6">
-          <h2 className="text-base font-semibold text-[#1E293B] mb-2">Загрузка игры...</h2>
-          <p className="text-xs text-[#64748B]">Подготовка игрового пространства</p>
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <Header user={user} onProfileClick={handleProfileClick} onLogout={handleLogout} isInGame={true} />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Загрузка игры...</h2>
+          <p className="text-sm text-gray-600">Подготовка игрового пространства</p>
         </div>
       </div>
     </div>

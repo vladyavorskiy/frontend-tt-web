@@ -119,35 +119,35 @@ export default function HatSetupPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="bg-[#1E293B] px-5 py-4">
-            <h2 className="text-base font-semibold text-white">Настройки игры</h2>
-            <p className="text-xs text-[#94A3B8] mt-0.5">Задайте параметры перед началом</p>
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
+            <h2 className="text-xl font-bold text-white">Настройки игры</h2>
+            <p className="text-blue-100 text-sm mt-1">Задайте параметры перед началом</p>
           </div>
 
-          <div className="p-5 space-y-5">
+          <div className="p-6 space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#1E293B]">Режим</label>
-                <div className="flex gap-1 p-0.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-md">
+                <label className="text-sm font-medium text-gray-700">Режим</label>
+                <div className="flex gap-1 p-0.5 bg-gray-50 border border-gray-200 rounded-md">
                   <button
                     onClick={() => setMode("solo")}
-                    className={`flex-1 h-8 text-xs font-medium rounded transition-colors ${
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
                       mode === "solo"
-                        ? "bg-[#3B82F6] text-white"
-                        : "text-[#1E293B] hover:bg-[#E2E8F0]"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     Соло
                   </button>
                   <button
                     onClick={() => setMode("team")}
-                    className={`flex-1 h-8 text-xs font-medium rounded transition-colors ${
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
                       mode === "team"
-                        ? "bg-[#3B82F6] text-white"
-                        : "text-[#1E293B] hover:bg-[#E2E8F0]"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     Команды
@@ -156,24 +156,24 @@ export default function HatSetupPage({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#1E293B]">Тип</label>
-                <div className="flex gap-1 p-0.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-md">
+                <label className="text-sm font-medium text-gray-700">Тип</label>
+                <div className="flex gap-1 p-0.5 bg-gray-50 border border-gray-200 rounded-md">
                   <button
                     onClick={() => setType("online")}
-                    className={`flex-1 h-8 text-xs font-medium rounded transition-colors ${
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
                       type === "online"
-                        ? "bg-[#10B981] text-white"
-                        : "text-[#1E293B] hover:bg-[#E2E8F0]"
+                        ? "bg-green-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     Онлайн
                   </button>
                   <button
                     onClick={() => setType("offline")}
-                    className={`flex-1 h-8 text-xs font-medium rounded transition-colors ${
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
                       type === "offline"
-                        ? "bg-[#10B981] text-white"
-                        : "text-[#1E293B] hover:bg-[#E2E8F0]"
+                        ? "bg-green-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     Оффлайн
@@ -183,34 +183,34 @@ export default function HatSetupPage({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#1E293B]">Слов на игрока</label>
+              <label className="text-sm font-medium text-gray-700">Слов на игрока</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={localWordsPerPlayer}
                 onChange={(e) => handleInputChange(e.target.value, handleWordsChange)}
                 onBlur={() => handleBlur(localWordsPerPlayer, "words", 8, handleWordsChange)}
-                className={`w-full h-9 px-3 bg-white border rounded-md text-sm focus:outline-none focus:ring-1 transition-colors ${
+                className={`w-full px-3 py-2.5 bg-white border rounded-md text-base focus:outline-none focus:ring-1 transition-colors ${
                   errors.words
                     ? "border-red-500 focus:border-red-500 focus:ring-red-200"
-                    : "border-[#CBD5E1] focus:border-[#3B82F6] focus:ring-[#3B82F6]"
+                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 }`}
                 placeholder="Введите число"
               />
               {errors.words && (
-                <p className="text-red-500 text-[10px] mt-1">{errors.words}</p>
+                <p className="text-red-500 text-xs mt-1">{errors.words}</p>
               )}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#1E293B]">Время на раунды (сек)</label>
+              <label className="text-sm font-medium text-gray-700">Время на раунды (сек)</label>
               <div className="grid grid-cols-3 gap-2">
                 {roundTime.map((_, index) => {
                   const defaultValues = [30, 40, 20];
                   return (
                     <div key={index} className="space-y-1">
                       <div className="text-center">
-                        <span className="text-[10px] font-medium text-[#64748B]">Раунд {index + 1}</span>
+                        <span className="text-xs font-medium text-gray-500">Раунд {index + 1}</span>
                       </div>
                       <input
                         type="text"
@@ -223,15 +223,15 @@ export default function HatSetupPage({
                           defaultValues[index],
                           (value) => handleRoundTimeChange(index, value)
                         )}
-                        className={`w-full h-9 text-center bg-white border rounded-md text-sm focus:outline-none focus:ring-1 transition-colors ${
+                        className={`w-full h-10 text-center bg-white border rounded-md text-base focus:outline-none focus:ring-1 transition-colors ${
                           errors[`time${index + 1}`]
                             ? "border-red-500 focus:border-red-500 focus:ring-red-200"
-                            : "border-[#CBD5E1] focus:border-[#3B82F6] focus:ring-[#3B82F6]"
+                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         }`}
                         placeholder="сек"
                       />
                       {errors[`time${index + 1}`] && (
-                        <p className="text-red-500 text-[8px] text-center">{errors[`time${index + 1}`]}</p>
+                        <p className="text-red-500 text-[10px] text-center">{errors[`time${index + 1}`]}</p>
                       )}
                     </div>
                   );
@@ -239,16 +239,16 @@ export default function HatSetupPage({
               </div>
             </div>
 
-            <div className="flex gap-2 pt-3">
+            <div className="flex gap-3 pt-3">
               <button
                 onClick={handleCancel}
-                className="flex-1 h-9 bg-white border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#1E293B] text-xs font-medium rounded-md transition-colors"
+                className="flex-1 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-md transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 h-9 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
                 disabled={Object.values(errors).some(error => error !== "")}
               >
                 Начать игру

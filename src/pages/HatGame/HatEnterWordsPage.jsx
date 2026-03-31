@@ -1,3 +1,4 @@
+// HatGame/HatEnterWordsPage.jsx - Без Header
 import React from "react";
 
 export default function HatEnterWordsPage({
@@ -29,55 +30,60 @@ export default function HatEnterWordsPage({
     console.log("[HatEnterWordsPage] submit_words emitted:", userWords);
   };
 
+  const totalPlayers = waitingStatus.total || players.length;
+  const submittedCount = waitingStatus.submitted;
+  const progressPercent = totalPlayers > 0 ? Math.round((submittedCount / totalPlayers) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-8" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="max-w-lg mx-auto px-4">
-        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="bg-[#1E293B] px-5 py-4">
-            <h2 className="text-base font-semibold text-white">Введите ваши слова</h2>
-            <p className="text-xs text-[#94A3B8] mt-0.5">Введите {wordsPerPlayer} слов для игры</p>
+    <div className="flex-1 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-[466px]">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-6 py-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-black leading-7">Введите ваши слова</h2>
+            <p className="text-sm text-gray-600 mt-1 leading-5">
+              Введите {wordsPerPlayer} {getWordDeclension(wordsPerPlayer)} для игры
+            </p>
           </div>
 
-          <div className="p-5">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-3">
-                {Array.from({ length: wordsPerPlayer }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-[#F1F5F9] rounded-md flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] font-medium text-[#1E293B]">{index + 1}</span>
-                    </div>
-                    <input
-                      value={userWords[index] || ""}
-                      onChange={(e) => handleChangeWord(index, e.target.value)}
-                      placeholder={`Слово ${index + 1}`}
-                      className="flex-1 h-9 px-3 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
-                    />
+          <div className="px-6 py-6 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: wordsPerPlayer }).map((_, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                   </div>
-                ))}
-              </div>
+                  <input
+                    type="text"
+                    value={userWords[index] || ""}
+                    onChange={(e) => handleChangeWord(index, e.target.value)}
+                    placeholder={`Слово ${index + 1}`}
+                    className="flex-1 h-[41px] px-3 rounded-md border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  />
+                </div>
+              ))}
+            </div>
 
-              <button
-                type="submit"
-                className="w-full h-9 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-xs font-medium rounded-md transition-colors"
-              >
-                Отправить слова
-              </button>
-            </form>
+            <button
+              onClick={handleSubmit}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold uppercase tracking-wide rounded-lg transition-colors"
+            >
+              Отправить слова
+            </button>
 
-            <div className="mt-5 pt-4 border-t border-[#E2E8F0]">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-[#64748B]">Прогресс</span>
-                <span className="text-xs font-medium text-[#1E293B]">
-                  {waitingStatus.submitted} / {waitingStatus.total || players.length}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Прогресс: {submittedCount}/{totalPlayers}
                 </span>
+                <span className="text-sm font-medium text-gray-700">{progressPercent}%</span>
               </div>
-              <div className="h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#10B981] rounded-full transition-all duration-500"
-                  style={{ width: `${(waitingStatus.submitted / (waitingStatus.total || players.length)) * 100}%` }}
-                ></div>
+                  className="h-full bg-green-500 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
               </div>
-              <p className="text-[10px] text-[#64748B] text-center mt-2">
+              <p className="text-xs text-gray-500 text-center mt-2">
                 Игра начнется, когда все отправят слова
               </p>
             </div>
@@ -86,4 +92,10 @@ export default function HatEnterWordsPage({
       </div>
     </div>
   );
+}
+
+function getWordDeclension(count) {
+  if (count % 10 === 1 && count % 100 !== 11) return "слово";
+  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return "слова";
+  return "слов";
 }
