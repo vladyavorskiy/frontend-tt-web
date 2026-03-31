@@ -2,13 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import socket from "../socketClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import * as Toast from '@radix-ui/react-toast';
 import ProfileModal from "./ProfileModal";
+import Header from "./Header";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 
@@ -21,7 +16,7 @@ function ensureSessionId() {
   }
 }
 
-export default function HomePage({showToast}) {
+export default function HomePage({ showToast }) {
   ensureSessionId();
   const navigate = useNavigate();
 
@@ -101,13 +96,17 @@ export default function HomePage({showToast}) {
   }, [user?.id]);
 
   const handleRegister = async () => {
+    console.log("handleRegister called with:", authData);
     try {
       const res = await fetch(`${API}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
+      console.log("Register response status:", res.status);
       const data = await res.json();
+      console.log("Register response data:", data);
+      
       if (!res.ok) throw new Error(data.message || "Ошибка регистрации");
 
       Cookies.set("token", data.token, { expires: 7 });
@@ -117,19 +116,25 @@ export default function HomePage({showToast}) {
       setName(data.user.username);
       setIsAuthChecked(true);
       checkActiveRoom(data.user.id);
+      console.log("Registration successful, user set:", data.user);
     } catch (err) {
+      console.error("Register error:", err);
       setError(err.message);
     }
   };
 
   const handleLogin = async () => {
+    console.log("handleLogin called with:", authData);
     try {
       const res = await fetch(`${API}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
+      console.log("Login response status:", res.status);
       const data = await res.json();
+      console.log("Login response data:", data);
+      
       if (!res.ok) throw new Error(data.message || "Ошибка авторизации");
 
       Cookies.set("token", data.token, { expires: 7 });
@@ -139,7 +144,9 @@ export default function HomePage({showToast}) {
       setName(data.user.username);
       setIsAuthChecked(true);
       checkActiveRoom(data.user.id);
+      console.log("Login successful, user set:", data.user);
     } catch (err) {
+      console.error("Login error:", err);
       setError(err.message);
     }
   };
@@ -149,6 +156,7 @@ export default function HomePage({showToast}) {
     sessionStorage.removeItem("userName");
     sessionStorage.removeItem("userId");
     sessionStorage.removeItem("activeRoom");
+    sessionStorage.removeItem("isCreator");
     setUser({ username: "", id: null });
     setIsAuthChecked(true);
     setIsRegisterMode(false);
@@ -198,15 +206,19 @@ export default function HomePage({showToast}) {
     e.preventDefault();
     if (!saveNameToSession()) return;
     if (!roomId.trim()) return showToast('default', "Введите ID комнаты");
+    let roomIdToJoin = roomId.trim();
+    if (roomIdToJoin.includes("://")) {
+      roomIdToJoin = roomIdToJoin.split("/").filter(Boolean).pop();
+    }
 
     const userId = Number(sessionStorage.getItem("userId"));
     const sessionId = sessionStorage.getItem("sessionId");
 
-    sessionStorage.setItem("activeRoom", roomId.trim());
-    navigate(`/room/${roomId.trim()}`);
+    sessionStorage.setItem("activeRoom", roomIdToJoin);
+    navigate(`/room/${roomIdToJoin}`);
 
     if (!socket.connected) socket.connect();
-    socket.emit("join_room", { roomId: roomId.trim(), userId, sessionId });
+    socket.emit("join_room", { roomId: roomIdToJoin, userId, sessionId });
   };
 
   const goToActiveRoom = () => {
@@ -219,7 +231,7 @@ export default function HomePage({showToast}) {
       const usernameStr = (newUsername || "").trim();
       const passwordStr = (newPassword || "").trim();
       if (!usernameStr) {
-        showToast('error',"Имя не может быть пустым");
+        showToast('error', "Имя не может быть пустым");
         return;
       }
 
@@ -251,206 +263,205 @@ export default function HomePage({showToast}) {
     }
   };
 
-if (!Cookies.get('token') && isAuthChecked) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-8">
-            <div className="text-center space-y-2">
-              <CardTitle className="text-3xl font-bold">
-                TableTime
-              </CardTitle>
-              <CardDescription className="text-blue-100 text-lg">
-                {isRegisterMode ? 'Создайте аккаунт' : 'Войдите, чтобы продолжить'}
-              </CardDescription>
-            </div>
-          </CardHeader>
+  if (!Cookies.get('token') && isAuthChecked) {
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      console.log("Form submitted, isRegisterMode:", isRegisterMode);
+      
+      if (isRegisterMode) {
+        await handleRegister();
+      } else {
+        await handleLogin();
+      }
+    };
 
-          <CardContent className="p-8 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="font-semibold text-gray-700 dark:text-gray-300">
-                Имя пользователя
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Введите имя"
-                value={authData.username}
-                onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-                className="h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="font-semibold text-gray-700 dark:text-gray-300">
-                Пароль
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Введите пароль"
-                value={authData.password}
-                onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-                className="h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
-              />
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-600 dark:text-red-400 text-sm text-center">{error}</p>
-              </div>
-            )}
-
-            <Button 
-              onClick={isRegisterMode ? handleRegister : handleLogin}
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-            >
-              {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
-            </Button>
-
-            <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-gray-600 dark:text-gray-400">
-                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <div className="w-full max-w-[448px]">
+          <div className="rounded-lg overflow-hidden bg-white shadow-lg">
+            <div className="bg-[#00277D] px-6 py-6 flex flex-col items-center gap-1">
+              <h1 className="text-white text-2xl font-bold text-center">TableTime</h1>
+              <p className="text-gray-300 text-base text-center">
+                {isRegisterMode ? 'Создайте аккаунт' : 'Вход в аккаунт'}
               </p>
-              <button 
-                onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-lg transition-colors mt-2"
+            </div>
+
+            <div className="px-6 py-6 flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-700 text-sm font-medium">Имя пользователя</label>
+                  <input
+                    type="text"
+                    value={authData.username}
+                    onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+                    placeholder="Введите имя пользователя"
+                    autoComplete="username"
+                    required
+                    className="w-full px-3 py-2.5 rounded-md border border-gray-300 bg-white text-base text-gray-900 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-700 text-sm font-medium">Пароль</label>
+                  <input
+                    type="password"
+                    value={authData.password}
+                    onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                    placeholder="Введите пароль"
+                    autoComplete={isRegisterMode ? "new-password" : "current-password"}
+                    required
+                    className="w-full px-3 py-2.5 rounded-md border border-gray-300 bg-white text-base text-gray-900 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-red-600 text-sm text-center">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-sm font-medium tracking-wider py-2.5 rounded-md transition-colors uppercase"
+                >
+                  {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
+                </button>
+              </form>
+
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-gray-400 text-sm">или</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <p className="text-center text-gray-700 text-sm">
+                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegisterMode(!isRegisterMode);
+                    setError('');
+                    setAuthData({ username: '', password: '' });
+                  }}
+                  className="text-[#2563EB] font-medium hover:underline"
+                >
+                  {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <Header user={user} onProfileClick={() => setIsProfileOpen(true)} onLogout={handleLogout} />
+
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-[466px] bg-white rounded-lg shadow-lg p-6">
+          {activeRoom ? (
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-2 w-full">
+                <h2 className="text-black font-semibold text-xl text-center">
+                  Добро пожаловать, {name}!
+                </h2>
+                <p className="text-gray-600 text-sm text-center">
+                  У вас есть активная комната
+                </p>
+              </div>
+
+              <div className="w-full flex flex-col items-center gap-2.5 px-6 py-[18px] rounded-lg border-2 border-gray-200 bg-gray-50">
+                <button
+                  onClick={goToActiveRoom}
+                  className="w-full py-2 px-5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-base font-medium rounded-md transition-colors uppercase tracking-wide"
+                >
+                  Вернуться в комнату
+                </button>
+                <div className="flex flex-col items-center gap-1 w-full">
+                  <p className="text-gray-600 text-sm text-center">
+                    Активная комната:
+                  </p>
+                  <p className="text-black font-semibold text-lg text-center">
+                    {activeRoom}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full py-2 px-5 bg-white hover:bg-gray-50 rounded-md border border-gray-300 text-black text-base font-medium transition-colors"
               >
-                {isRegisterMode ? 'Войти в аккаунт' : 'Создать аккаунт'}
+                Выйти из аккаунта
               </button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-return (
-  <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-    <div className="w-full max-w-2xl">
-      <Card className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-3xl font-bold">TableTime</CardTitle>
-                <CardDescription className="text-blue-100 text-lg">
-                  Игра в слова онлайн
-                </CardDescription>
-              </div>
-            </div>
-            <Button
-              onClick={() => setIsProfileOpen(true)}
-              variant="outline"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-            >
-              <i className="fas fa-user mr-2"></i>Профиль
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-8">
-          <div className="text-center space-y-2 mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              Добро пожаловать, <span className="text-blue-600 dark:text-blue-400">{name}</span>!
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              {activeRoom 
-                ? 'У вас есть активная комната'
-                : 'Создайте комнату или присоединитесь к существующей'}
-            </p>
-          </div>
-
-          {activeRoom ? (
-            <div className="space-y-6">
-              <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border-2 border-yellow-200 dark:border-yellow-800">
-                
-                <Button 
-                  onClick={goToActiveRoom}
-                  className="w-full h-14 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                >
-                  <i className="fas fa-door-open mr-2"></i>
-                  Вернуться в комнату
-                </Button>
-
-                <div className="flex items-center justify-between mt-8">
-                  <div>
-                    <p className="text-yellow-600 dark:text-yellow-500">
-                      Вы уже находитесь в комнате
-                    </p>
-                  </div>
-                  <div className="px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg">
-                    <code className="font-mono font-bold text-yellow-700 dark:text-yellow-400">
-                      {activeRoom}
-                    </code>
-                  </div>
-                </div>
-              </div>
-            </div>
           ) : (
-            <div className="space-y-6">
-              <Button 
-                onClick={createRoom}
-                className="w-full h-16 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl text-xl font-bold shadow-lg hover:shadow-xl transition-all"
-              >
-                <i className="fas fa-plus-circle mr-3"></i>
-                Создать комнату
-              </Button>
-
-              <div className="relative">
-                <Separator />
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-4">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">или</span>
-                </div>
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-2 w-full">
+                <h2 className="text-black font-semibold text-xl text-center">
+                  Добро пожаловать, {name}!
+                </h2>
+                <p className="text-gray-600 text-sm text-center">
+                  Создайте или присоединитесь к комнате
+                </p>
               </div>
 
-              <div className="space-y-4">
-                <Label htmlFor="roomId" className="font-semibold text-gray-700 dark:text-gray-300 text-lg">
+              <button
+                onClick={createRoom}
+                className="w-full py-2 px-5 bg-[#16A34A] hover:bg-[#15803d] text-white text-base font-medium rounded-md transition-colors uppercase tracking-wide"
+              >
+                Создать комнату
+              </button>
+
+              <div className="relative flex items-center w-full">
+                <div className="flex-1 h-px bg-gray-300" />
+                <span className="px-2 bg-white text-gray-500 text-xs uppercase">
+                  или
+                </span>
+                <div className="flex-1 h-px bg-gray-300" />
+              </div>
+
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-gray-700 text-sm font-medium">
                   Присоединиться по ID
-                </Label>
-                <div className="flex gap-3">
-                  <Input
-                    id="roomId"
+                </label>
+                <div className="flex items-center gap-1.5 w-full">
+                  <input
                     type="text"
-                    placeholder="Введите ID комнаты"
                     value={roomId}
                     onChange={(e) => setRoomId(e.target.value)}
-                    className="h-12 flex-1 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
+                    placeholder="Введите ID комнаты"
+                    className="flex-1 px-3 py-2.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    onKeyDown={(e) => e.key === "Enter" && joinById(e)}
                   />
-                  <Button 
+                  <button
                     onClick={joinById}
-                    className="h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-bold"
+                    className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1d4ed8] rounded-md text-white text-sm font-medium transition-colors whitespace-nowrap"
                   >
-                    <i className="fas fa-sign-in-alt mr-2"></i>
                     Войти
-                  </Button>
+                  </button>
                 </div>
               </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full py-2 px-5 bg-white hover:bg-gray-50 rounded-md border border-gray-300 text-black text-base font-medium transition-colors"
+              >
+                Выйти из аккаунта
+              </button>
             </div>
           )}
-
-          <div className="pt-8 mt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-            <Button 
-              onClick={handleLogout} 
-              variant="ghost"
-              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-6 py-2 rounded-lg font-semibold transition-all"
-            >
-              <i className="fas fa-sign-out-alt mr-2"></i>
-              Выйти из аккаунта
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </main>
 
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         user={user}
         onSave={updateProfile}
+        showToast={showToast}
       />
     </div>
-  </div>
-);
+  );
 }

@@ -1,9 +1,5 @@
+// HatGame/HatEnterWordsPage.jsx - Без Header
 import React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
-import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 
 export default function HatEnterWordsPage({
   socket,
@@ -34,83 +30,72 @@ export default function HatEnterWordsPage({
     console.log("[HatEnterWordsPage] submit_words emitted:", userWords);
   };
 
+  const totalPlayers = waitingStatus.total || players.length;
+  const submittedCount = waitingStatus.submitted;
+  const progressPercent = totalPlayers > 0 ? Math.round((submittedCount / totalPlayers) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8 md:py-16">
-        <main className="flex flex-col items-center justify-center">
-          <div className="w-full max-w-3xl space-y-8">
-            <Card className="w-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
-              <CardContent className="p-6 md:p-10">
-                <div className="space-y-8">
-                  <div className="text-center space-y-4">
-                    <div className="inline-block p-3 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl">
-                      <h2 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
-                        Введите ваши слова
-                      </h2>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300 text-lg">
-                      Введите {wordsPerPlayer} слов для игры
-                    </p>
+    <div className="flex-1 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-[466px]">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="px-6 py-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-black leading-7">Введите ваши слова</h2>
+            <p className="text-sm text-gray-600 mt-1 leading-5">
+              Введите {wordsPerPlayer} {getWordDeclension(wordsPerPlayer)} для игры
+            </p>
+          </div>
+
+          <div className="px-6 py-6 flex flex-col gap-6">
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: wordsPerPlayer }).map((_, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                   </div>
-
-                  <form className="space-y-6" onSubmit={handleSubmit}>
-                    <div className="space-y-4">
-                      {Array.from({ length: wordsPerPlayer }).map((_, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl flex items-center justify-center text-lg font-bold shadow-md">
-                              {index + 1}
-                            </div>
-                          </div>
-                          
-                          <div className="flex-1">
-                            <Input
-                              id={`word-${index}`}
-                              value={userWords[index] || ""}
-                              onChange={(e) => handleChangeWord(index, e.target.value)}
-                              placeholder={`Слово ${index + 1}`}
-                              className="w-full h-12 bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 transition-all pl-4 pr-4"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-4">
-                      <Button
-                        type="submit"
-                        className="w-full h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        Отправить слова
-                      </Button>
-                    </div>
-                  </form>
+                  <input
+                    type="text"
+                    value={userWords[index] || ""}
+                    onChange={(e) => handleChangeWord(index, e.target.value)}
+                    placeholder={`Слово ${index + 1}`}
+                    className="flex-1 h-[41px] px-3 rounded-md border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
 
-            <div className="text-center space-y-4">
-              <div className="inline-block px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-900 rounded-xl border border-green-200 dark:border-gray-700">
-                <p className="text-gray-700 dark:text-gray-300 text-lg">
-                  Ожидание: <span className="font-bold text-green-600 dark:text-green-400">{waitingStatus.submitted}</span> /{" "}
-                  <span className="font-bold text-blue-600 dark:text-blue-400">{waitingStatus.total || players.length}</span> игроков
-                </p>
+            <button
+              onClick={handleSubmit}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold uppercase tracking-wide rounded-lg transition-colors"
+            >
+              Отправить слова
+            </button>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Прогресс: {submittedCount}/{totalPlayers}
+                </span>
+                <span className="text-sm font-medium text-gray-700">{progressPercent}%</span>
               </div>
-              <div className="w-full max-w-md mx-auto">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
-                    style={{ width: `${(waitingStatus.submitted / (waitingStatus.total || players.length)) * 100}%` }}
-                  ></div>
-                </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Игра начнется, когда все участники отправят свои слова
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Игра начнется, когда все отправят слова
               </p>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
+}
+
+function getWordDeclension(count) {
+  if (count % 10 === 1 && count % 100 !== 11) return "слово";
+  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return "слова";
+  return "слов";
 }

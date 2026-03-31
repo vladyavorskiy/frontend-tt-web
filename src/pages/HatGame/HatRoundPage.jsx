@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CheckIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CheckIcon } from "../../components/GameIcons";
 
 export const HatRoundPage = ({
   userId,
@@ -25,169 +23,129 @@ export const HatRoundPage = ({
     }
   }, [activePlayer, isCurrentExplainer]);
 
-  useEffect(() => {
-    console.log("[HatRoundPage] Round state updated:", {
-      round,
-      activePlayer,
-      guesser,
-      currentWord,
-      isCurrentExplainer,
-      isReady,
-      userId,
-      timer
-    });
-  }, [round, activePlayer, guesser, currentWord, isCurrentExplainer, isReady, timer]);
-
   const handleReady = () => {
     if (!isCurrentExplainer) return;
-    console.log("[HatRoundPage] Player is ready:", userId);
     setIsReady(true);
     onReady();
   };
 
   const handleWordGuessed = () => {
-    console.log("[HatRoundPage] Word guessed by:", userId, "Word:", currentWord);
     onWordGuessed();
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   let contentType = "spectating";
   if (isCurrentExplainer && !isReady) contentType = "ready";
   else if (isCurrentExplainer && isReady && currentWord) contentType = "word";
   else if (guesser === userId) contentType = "guess";
-  
-  const isInGuessingTeam = mode === "team" && guesser === userId;
+
+  const activePlayerName = getPlayerName(activePlayer);
+  const guesserName = getPlayerName(guesser);
 
   return (
-    <section className="flex flex-col w-full items-center gap-6 p-4 md:p-6 max-w-6xl mx-auto">
-      <Card className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-blue-100 dark:border-gray-700 shadow-lg">
-        <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <div className="flex items-center gap-3 mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-                Раунд {round + 1}
-              </h2>
-            </div>
-            <div className="space-y-2">
-              <p className="text-gray-700 dark:text-gray-200 text-lg md:text-xl">
-                <span className="font-bold text-blue-600 dark:text-blue-400">Объясняющий:</span>{" "}
-                {getPlayerName(activePlayer)}
-                {isCurrentExplainer && " (Вы)"}
-              </p>
-              <p className="text-gray-700 dark:text-gray-200 text-lg md:text-xl">
-                <span className="font-bold text-green-600 dark:text-green-400">Отгадывающий:</span>{" "}
-                {mode === "team" 
-                  ? `Team ${guesser}${isInGuessingTeam ? " (Ваша команда)" : ""}`
-                  : `${getPlayerName(guesser)}${guesser === userId ? " (Вы)" : ""}`
-                }
-              </p>
-            </div>
+    <div className="flex flex-col rounded-lg bg-white overflow-hidden shadow-lg">
+      <div className="flex flex-col gap-4 px-6 py-6 bg-gradient-to-r from-blue-600 to-blue-700">
+        <div className="flex items-center justify-between">
+          <h2 className="text-white font-semibold text-2xl leading-8">Раунд {round + 1}</h2>
+          <div className="flex px-6 py-2 rounded-lg bg-black/30 items-center justify-center">
+            <span className="text-white font-bold text-4xl leading-10 tabular-nums">{formatTime(timer)}</span>
           </div>
+        </div>
 
-          <div className="relative flex flex-col items-center justify-center">
-            <div className="relative w-28 h-28 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse opacity-20"></div>
-              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-gray-900 border-4 border-blue-200 dark:border-gray-700"></div>
-              <span className="relative text-4xl font-bold text-blue-600 dark:text-blue-400">
-                {timer}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">секунд</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="min-h-[400px] w-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-lg">
-        <CardContent className="flex items-center justify-center flex-col p-8 md:p-12">
-          {contentType === "ready" && (
-            <div className="text-center space-y-6">
-              <div className="space-y-3">
-                <h3 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-                  Ваш ход
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-lg max-w-md">
-                  Вы - объясняющий. Нажмите кнопку, когда будете готовы начать объяснение
-                </p>
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-white/90 font-normal text-sm leading-5">Объясняет:</span>
+            <span className="text-white font-semibold text-sm leading-5">{activePlayerName}</span>
+            {isCurrentExplainer && (
+              <div className="ml-2 px-2 py-0.5 rounded-full bg-yellow-500">
+                <span className="text-white font-normal text-xs leading-4">ЭТО ВЫ</span>
               </div>
-              <Button
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-white/90 font-normal text-sm leading-5">Отгадывает:</span>
+            <span className="text-white font-semibold text-sm leading-5">{guesserName}</span>
+            {guesser === userId && (
+              <div className="ml-2 px-2 py-0.5 rounded-full bg-green-500">
+                <span className="text-white font-normal text-xs leading-4">ЭТО ВЫ</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col flex-1 items-center justify-center gap-8 px-6 py-12 min-h-[400px]">
+        {contentType === "ready" && (
+          <div className="text-center w-full">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Ваш ход</h3>
+            <p className="text-sm text-gray-600 mb-6">Вы - объясняющий. Нажмите кнопку, когда будете готовы</p>
+            <div className="flex justify-center">
+              <button
                 onClick={handleReady}
-                className="h-16 px-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-2xl font-bold text-white rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
+                className="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-medium rounded-lg transition-colors"
               >
                 Готов к ходу
-              </Button>
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {contentType === "word" && currentWord && (
-            <div className="text-center space-y-8">
-              <div className="max-w-2xl w-full p-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 rounded-2xl border-2 border-blue-100 dark:border-gray-700 shadow-inner">
-                <h3 className="text-4xl md:text-5xl font-bold text-blue-600 dark:text-blue-400 text-center tracking-wide">
-                  {currentWord}
-                </h3>
-              </div>
-              <div className="space-y-4">
-                <p className="text-gray-600 dark:text-gray-300 text-lg">
-                  Вы - объясняющий. Объясняйте слово не называя его и однокоренные
-                </p>
-                <Button
-                  onClick={handleWordGuessed}
-                  className="h-14 px-8 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
-                >
-                  <CheckIcon className="w-6 h-6 mr-3" />
-                  <span className="font-bold text-xl">
-                    Отгадано
-                  </span>
-                </Button>
-              </div>
+        {contentType === "word" && currentWord && (
+          <div className="text-center w-full">
+            <h1 className="text-blue-600 font-bold text-5xl sm:text-6xl leading-tight text-center tracking-wide mb-6">
+              {currentWord}
+            </h1>
+            <p className="text-gray-500 text-lg leading-7 text-center mb-8">
+              Объясняйте слово, не используя однокоренные!
+            </p>
+            <div className="flex justify-center">
+              <button
+                onClick={handleWordGuessed}
+                className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-lg bg-green-600 hover:bg-green-700 transition-colors"
+              >
+                <CheckIcon width={24} height={24} color="white" />
+                <span className="text-white font-normal text-xl leading-7 tracking-wider">ОТГАДАНО</span>
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {contentType === "word" && !currentWord && (
-            <div className="text-center space-y-6">
-              <div className="animate-pulse">
-                <div className="w-64 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
-                <div className="w-48 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto"></div>
-              </div>
-              <p className="text-xl text-gray-500 dark:text-gray-400">Вы - объясняющий. Получение слова...</p>
-            </div>
-          )}
+        {contentType === "word" && !currentWord && (
+          <div className="text-center w-full">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-sm text-gray-500">Получение слова...</p>
+          </div>
+        )}
 
-          {contentType === "guess" && (
-            <div className="text-center space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
-                  {mode === "team" ? "Ваша команда отгадывает слова" : "Вы отгадываете слова"}
-                </h3>
-                <div className="inline-block p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800 rounded-xl">
-                  <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300">
-                    {mode === "team" 
-                      ? "Ваша команда отгадывает. Внимательно слушайте объясняющего!" 
-                      : "Вы - отгадывающий. Внимательно слушайте объясняющего!"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-3 text-gray-500 dark:text-gray-400">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <p className="text-lg">
-                  {mode === "team" ? "Ждем объяснения для вашей команды..." : "Ждем объяснения..."}
-                </p>
-              </div>
+        {contentType === "guess" && (
+          <div className="text-center w-full">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Вы отгадываете</h3>
+            <p className="text-sm text-gray-600 mb-4">Внимательно слушайте объясняющего</p>
+            <div className="flex justify-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
             </div>
-          )}
+          </div>
+        )}
 
-          {contentType === "spectating" && (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-8 py-12">
-              <div className="space-y-4">
-                <h3 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
-                  Наблюдаем за игрой
-                </h3>
-              </div>
-              <p className="text-gray-500 dark:text-gray-400 text-lg">
-                Ждем завершения хода...
-              </p>
+        {contentType === "spectating" && (
+          <div className="text-center w-full">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Наблюдаем за игрой</h3>
+            <p className="text-sm text-gray-600">Ждем завершения хода...</p>
+            <div className="flex justify-center gap-2 mt-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </section>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };

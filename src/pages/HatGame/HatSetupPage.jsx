@@ -1,16 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "../../components/ui/toggle-group";
 
 export default function HatSetupPage({
   socket,
@@ -44,34 +32,20 @@ export default function HatSetupPage({
   const validateNumber = (value, fieldName, min = 1) => {
     const numValue = parseInt(value, 10);
     
-    if (value === "") {
-      return "Поле не может быть пустым";
-    }
-    
-    if (isNaN(numValue)) {
-      return "Введите корректное число";
-    }
-    
-    if (numValue < min) {
-      return `Значение должно быть не меньше ${min}`;
-    }
-    
-    if (!Number.isInteger(numValue)) {
-      return "Введите целое число";
-    }
+    if (value === "") return "Поле не может быть пустым";
+    if (isNaN(numValue)) return "Введите корректное число";
+    if (numValue < min) return `Значение должно быть не меньше ${min}`;
+    if (!Number.isInteger(numValue)) return "Введите целое число";
     
     return "";
   };
 
   const handleWordsChange = (value) => {
     setLocalWordsPerPlayer(value);
-    
     const error = validateNumber(value, "words", 1);
     setErrors(prev => ({ ...prev, words: error }));
-    
     if (!error && value !== "") {
-      const numValue = parseInt(value, 10);
-      setWordsPerPlayer(numValue);
+      setWordsPerPlayer(parseInt(value, 10));
     }
   };
 
@@ -85,9 +59,8 @@ export default function HatSetupPage({
     setErrors(prev => ({ ...prev, [fieldName]: error }));
     
     if (!error && value !== "") {
-      const numValue = parseInt(value, 10);
       const updatedRoundTime = [...roundTime];
-      updatedRoundTime[index] = numValue;
+      updatedRoundTime[index] = parseInt(value, 10);
       setRoundTime(updatedRoundTime);
     }
   };
@@ -101,19 +74,12 @@ export default function HatSetupPage({
     };
     
     setErrors(newErrors);
-    
-    const hasErrors = Object.values(newErrors).some(error => error !== "");
-    return !hasErrors;
+    return !Object.values(newErrors).some(error => error !== "");
   };
 
   const handleConfirm = () => {
     if (!validateAllFields()) {
       showToast('error', "Исправьте ошибки в полях ввода");
-      return;
-    }
-
-    if (!localWordsPerPlayer || localRoundTime.some(t => !t)) {
-      showToast('error', "Все поля должны быть заполнены");
       return;
     }
 
@@ -130,9 +96,8 @@ export default function HatSetupPage({
       return;
     }
 
-    const payload = { type, mode, roundTime: timeValues, wordsPerPlayer: wordsValue };
-    socket.emit("create_game", payload);
-    console.log("[HatSetupPage] create_game emitted:", payload);
+    socket.emit("create_game", { type, mode, roundTime: timeValues, wordsPerPlayer: wordsValue });
+    console.log("[HatSetupPage] create_game emitted:", { type, mode, roundTime: timeValues, wordsPerPlayer: wordsValue });
   };
 
   const handleCancel = () => {
@@ -154,167 +119,144 @@ export default function HatSetupPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div>
-              <CardTitle className="text-3xl font-bold">Настройки игры</CardTitle>
-              <CardDescription className="text-blue-100 text-lg">
-                Задайте параметры перед началом сессии
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <Label className="font-semibold text-gray-700 dark:text-gray-300 text-lg flex items-center gap-2">
-                Режим игры
-              </Label>
-              <ToggleGroup
-                type="single"
-                value={mode}
-                onValueChange={(val) => val && setMode(val)}
-                className="bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-1"
-              >
-                <ToggleGroupItem
-                  value="solo"
-                  className="flex-1 data-[state=on]:bg-gradient-to-r data-[state=on]:from-blue-500 data-[state=on]:to-purple-500 data-[state=on]:text-white data-[state=off]:text-gray-600 dark:data-[state=off]:text-gray-400 px-6 py-3 rounded-lg transition-all"
-                >
-                  Соло
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="team"
-                  className="flex-1 data-[state=on]:bg-gradient-to-r data-[state=on]:from-blue-500 data-[state=on]:to-purple-500 data-[state=on]:text-white data-[state=off]:text-gray-600 dark:data-[state=off]:text-gray-400 px-6 py-3 rounded-lg transition-all"
-                >
-                  Команды
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="font-semibold text-gray-700 dark:text-gray-300 text-lg flex items-center gap-2">
-                Тип игры
-              </Label>
-              <ToggleGroup
-                type="single"
-                value={type}
-                onValueChange={(val) => val && setType(val)}
-                className="bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-1"
-              >
-                <ToggleGroupItem
-                  value="online"
-                  className="flex-1 data-[state=on]:bg-gradient-to-r data-[state=on]:from-green-500 data-[state=on]:to-emerald-500 data-[state=on]:text-white data-[state=off]:text-gray-600 dark:data-[state=off]:text-gray-400 px-6 py-3 rounded-lg transition-all"
-                >
-                  Онлайн
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="offline"
-                  className="flex-1 data-[state=on]:bg-gradient-to-r data-[state=on]:from-green-500 data-[state=on]:to-emerald-500 data-[state=on]:text-white data-[state=off]:text-gray-600 dark:data-[state=off]:text-gray-400 px-6 py-3 rounded-lg transition-all"
-                >
-                  Оффлайн
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+    <div className="flex-1 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5">
+            <h2 className="text-xl font-bold text-white">Настройки игры</h2>
+            <p className="text-blue-100 text-sm mt-1">Задайте параметры перед началом</p>
           </div>
 
-          <div className="space-y-3">
-            <Label className="font-semibold text-gray-700 dark:text-gray-300 text-lg flex items-center gap-2">
-              Слов на игрока
-            </Label>
-            <div className="space-y-2">
-              <Input
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Режим</label>
+                <div className="flex gap-1 p-0.5 bg-gray-50 border border-gray-200 rounded-md">
+                  <button
+                    onClick={() => setMode("solo")}
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
+                      mode === "solo"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Соло
+                  </button>
+                  <button
+                    onClick={() => setMode("team")}
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
+                      mode === "team"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Команды
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Тип</label>
+                <div className="flex gap-1 p-0.5 bg-gray-50 border border-gray-200 rounded-md">
+                  <button
+                    onClick={() => setType("online")}
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
+                      type === "online"
+                        ? "bg-green-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Онлайн
+                  </button>
+                  <button
+                    onClick={() => setType("offline")}
+                    className={`flex-1 h-9 text-sm font-medium rounded transition-colors ${
+                      type === "offline"
+                        ? "bg-green-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    Оффлайн
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Слов на игрока</label>
+              <input
                 type="text"
                 inputMode="numeric"
                 value={localWordsPerPlayer}
                 onChange={(e) => handleInputChange(e.target.value, handleWordsChange)}
                 onBlur={() => handleBlur(localWordsPerPlayer, "words", 8, handleWordsChange)}
-                className={`h-12 bg-gray-50 dark:bg-gray-700 border-2 ${
-                  errors.words 
-                    ? "border-red-500 dark:border-red-500" 
-                    : "border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
-                } text-gray-800 dark:text-white text-lg rounded-xl focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 transition-all`}
+                className={`w-full px-3 py-2.5 bg-white border rounded-md text-base focus:outline-none focus:ring-1 transition-colors ${
+                  errors.words
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                }`}
                 placeholder="Введите число"
               />
               {errors.words && (
-                <p className="text-red-500 dark:text-red-400 text-sm flex items-center gap-1">
-                  <i className="fas fa-exclamation-circle"></i>
-                  {errors.words}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.words}</p>
               )}
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <Label className="font-semibold text-gray-700 dark:text-gray-300 text-lg flex items-center gap-2">
-              Время на раунды (сек)
-            </Label>
-            <div className="grid grid-cols-3 gap-4">
-              {roundTime.map((_, index) => {
-                const defaultValues = [30, 40, 20];
-                return (
-                  <div key={index} className="space-y-2">
-                    <div className="text-center">
-                      <span className="inline-block w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-center leading-8">
-                        {index + 1}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <Input
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Время на раунды (сек)</label>
+              <div className="grid grid-cols-3 gap-2">
+                {roundTime.map((_, index) => {
+                  const defaultValues = [30, 40, 20];
+                  return (
+                    <div key={index} className="space-y-1">
+                      <div className="text-center">
+                        <span className="text-xs font-medium text-gray-500">Раунд {index + 1}</span>
+                      </div>
+                      <input
                         type="text"
                         inputMode="numeric"
                         value={localRoundTime[index]}
                         onChange={(e) => handleInputChange(e.target.value, (value) => handleRoundTimeChange(index, value))}
                         onBlur={() => handleBlur(
-                          localRoundTime[index], 
-                          `time${index + 1}`, 
-                          defaultValues[index], 
+                          localRoundTime[index],
+                          `time${index + 1}`,
+                          defaultValues[index],
                           (value) => handleRoundTimeChange(index, value)
                         )}
-                        className={`w-full h-12 text-center bg-gray-50 dark:bg-gray-700 border-2 ${
-                          errors[`time${index + 1}`] 
-                            ? "border-red-500 dark:border-red-500" 
-                            : "border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400"
-                        } rounded-xl text-lg font-semibold transition-all`}
+                        className={`w-full h-10 text-center bg-white border rounded-md text-base focus:outline-none focus:ring-1 transition-colors ${
+                          errors[`time${index + 1}`]
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        }`}
                         placeholder="сек"
                       />
                       {errors[`time${index + 1}`] && (
-                        <p className="text-red-500 dark:text-red-400 text-xs text-center">
-                          {errors[`time${index + 1}`]}
-                        </p>
+                        <p className="text-red-500 text-[10px] text-center">{errors[`time${index + 1}`]}</p>
                       )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
-              Первый, второй и третий раунды соответственно
-            </p>
-          </div>
-        </CardContent>
 
-        <CardFooter className="bg-gray-50 dark:bg-gray-900/50 p-8 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1 h-14 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-lg font-semibold transition-all"
-            >
-              Отмена
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl text-lg font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={Object.values(errors).some(error => error !== "")}
-            >
-              Начать игру
-            </Button>
+            <div className="flex gap-3 pt-3">
+              <button
+                onClick={handleCancel}
+                className="flex-1 py-2.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-md transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+                disabled={Object.values(errors).some(error => error !== "")}
+              >
+                Начать игру
+              </button>
+            </div>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

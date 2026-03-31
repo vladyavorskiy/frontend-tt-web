@@ -1,15 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import socket from '../socketClient';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { CopyIcon, SendIcon, AlertCircle, Users, MessageSquare } from "lucide-react";
+import Header from './Header';
+import ProfileModal from './ProfileModal';
+import GameSelectionModal from './GameSelectionModal';
+import { 
+  CopyIcon, 
+  CheckCopyIcon, 
+  UsersIcon, 
+  PlayIcon, 
+  HomeIcon, 
+  LogoutIcon, 
+  DeleteIcon, 
+  SendIcon 
+} from '../components/GameIcons';
 
-export default function RoomPage({showToast}) {
+export default function RoomPage({ showToast }) {
   const { id: roomId } = useParams();
   const navigate = useNavigate();
 
@@ -21,11 +28,71 @@ export default function RoomPage({showToast}) {
   const [gameStarted, setGameStarted] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [user, setUser] = useState({ 
+    username: sessionStorage.getItem('userName') || '', 
+    id: Number(sessionStorage.getItem('userId')),
+    email: ''
+  });
 
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const participantsContainerRef = useRef(null);
   const userName = sessionStorage.getItem('userName');
   const userId = Number(sessionStorage.getItem('userId'));
   const sessionId = sessionStorage.getItem('sessionId');
+
+  const handleLogout = () => {
+    if (window.confirm('Вы уверены, что хотите выйти из аккаунта?')) {
+      Cookies.remove('token');
+      sessionStorage.clear();
+      navigate('/');
+      showToast('success', 'Вы вышли из аккаунта');
+    }
+  };
+
+  const handleProfileClick = () => {
+    setIsProfileOpen(true);
+  };
+
+  const updateProfile = async (newUsername, newPassword) => {
+    try {
+      const usernameStr = (newUsername || "").trim();
+      const passwordStr = (newPassword || "").trim();
+      if (!usernameStr) {
+        showToast('error', "Имя не может быть пустым");
+        return;
+      }
+
+      const token = Cookies.get("token");
+      if (!token) {
+        showToast('error', "Вы не авторизованы");
+        return;
+      }
+
+      const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
+      const res = await fetch(`${API}/api/user/update_profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username: usernameStr, password: passwordStr || null }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Ошибка обновления профиля");
+
+      setUser(data.user);
+      sessionStorage.setItem("userName", data.user.username);
+      sessionStorage.setItem("userId", data.user.id);
+      showToast('success', "Профиль успешно обновлен");
+    } catch (err) {
+      throw err;
+    }
+  };
 
   useEffect(() => {
     console.log('[RoomPage] mount, roomId =', roomId);
@@ -100,15 +167,15 @@ export default function RoomPage({showToast}) {
       room_closed: () => {
         console.warn('[RoomPage] room_closed');
         setRoomClosed(true);
-        addMessage({ 
-          from: { name: 'Система' }, 
-          text: 'Комната закрыта создателем', 
-          createdAt: new Date().toISOString() 
+        addMessage({
+          from: { name: 'Система' },
+          text: 'Комната закрыта создателем',
+          createdAt: new Date().toISOString()
         });
         sessionStorage.removeItem('activeRoom');
-        setTimeout(() => { 
-          showToast('Комната была закрыта создателем'); 
-          navigate('default',); 
+        setTimeout(() => {
+          showToast('default', 'Комната была закрыта создателем');
+          navigate('/');
         }, 1000);
       },
 
@@ -131,7 +198,9 @@ export default function RoomPage({showToast}) {
 
   }, [roomId, navigate, userId, userName, sessionId]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   const sendMessage = (e) => {
     e.preventDefault();
@@ -170,284 +239,321 @@ export default function RoomPage({showToast}) {
 
   const startGame = () => {
     if (!socket || !isCreator) return;
-    console.log('[RoomPage] start_game_request emitted');
+    setShowSettings(true);
+  };
+
+  const handleGameStart = () => {
+    setShowSettings(false);
     socket.emit('start_game_request');
   };
 
   const copyRoomId = () => {
-    navigator.clipboard.writeText(roomId);
-    showToast('success', `ID комнаты ${roomId} скопирован`);
+    const textToCopy = roomId;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          setCopied(true);
+          showToast('success', `ID комнаты скопирован`);
+          setTimeout(() => setCopied(false), 1500);
+        })
+        .catch(err => {
+          console.warn('Clipboard API error:', err);
+          fallbackCopy(textToCopy);
+        });
+    } else {
+      fallbackCopy(textToCopy);
+    }
+  };
+  
+  const fallbackCopy = (text) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setCopied(true);
+        showToast('success', `ID комнаты скопирован`);
+        setTimeout(() => setCopied(false), 1500);
+      } else {
+        showToast('error', 'Не удалось скопировать ID комнаты');
+      }
+    } catch (err) {
+      console.error('Fallback copy error:', err);
+      showToast('error', 'Ошибка при копировании ID комнаты');
+    }
+    
+    document.body.removeChild(textArea);
   };
 
   if (gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center space-y-6">
-          <div className="animate-spin">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      <div className="h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-sm text-gray-900">Переход к игре...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const creator = participants.find(p => p.isCreator);
+  const creatorName = creator?.name || 'Создатель';
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+      <Header 
+        user={user} 
+        onProfileClick={handleProfileClick} 
+        onLogout={handleLogout} 
+        isInGame={false}
+      />
+      
+      <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+        <div className="flex flex-wrap justify-between items-center gap-3 px-6 xl:px-[122px] py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-black">Комната:</span>
+              <div className="flex items-center gap-1">
+                <span className="px-2 py-1 bg-gray-100 rounded text-[15px] font-semibold text-black leading-6">
+                  {roomId}
+                </span>
+                <button
+                  onClick={copyRoomId}
+                  title={copied ? "Скопировано!" : "Копировать код"}
+                  className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                  {copied ? (
+                    <CheckCopyIcon width={16} height={16} color="#16A34A" />
+                  ) : (
+                    <CopyIcon width={16} height={16} color="#374151" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 px-3 py-1 rounded-md border border-gray-200">
+              <UsersIcon width={16} height={16} color="#374151" />
+              <span className="text-sm text-black">{participants.length} участников</span>
+            </div>
+
+            <div className="flex items-center px-3 py-1 rounded-md bg-gray-100">
+              <span className="text-sm text-black">Создатель:</span>
+              <span className="text-sm text-black px-1 font-medium">{creatorName}</span>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Переход к игре...
-          </h2>
+
+          <div className="flex flex-wrap items-center gap-[5px]">
+            {isCreator && !roomClosed && (
+              <button
+                onClick={startGame}
+                className="flex items-center gap-2 px-5 py-2 rounded-md bg-[#16A34A] text-white text-base font-medium hover:bg-[#15803D] transition-colors"
+              >
+                <PlayIcon width={17} height={17} color="white" />
+                Начать игру
+              </button>
+            )}
+            
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-5 py-2 rounded-md border border-gray-300 bg-white text-black text-base font-medium hover:bg-gray-50 transition-colors"
+            >
+              <HomeIcon width={20} height={20} color="black" />
+              Главная
+            </button>
+
+            {!roomClosed && !isCreator && (
+              <button
+                onClick={leaveRoom}
+                disabled={leaving}
+                className="flex items-center gap-2 px-5 py-2 rounded-md border border-gray-300 bg-white text-black text-base font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <LogoutIcon width={20} height={20} color="black" />
+                {leaving ? 'Выходим...' : 'Выйти'}
+              </button>
+            )}
+
+            {isCreator && !roomClosed && (
+              <button
+                onClick={deleteRoom}
+                className="flex items-center gap-2 px-5 py-2 rounded-md bg-[#DC2626] text-white text-base font-medium hover:bg-[#B91C1C] transition-colors"
+              >
+                <DeleteIcon width={20} height={20} color="white" />
+                Удалить
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {leaveError && (
+        <div className="max-w-7xl mx-auto px-6 xl:px-[122px] mt-4 flex-shrink-0">
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600 text-sm">Ошибка: {leaveError}</p>
+          </div>
+        </div>
+      )}
+
+      {roomClosed ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Комната закрыта</h2>
+            <p className="text-sm text-gray-600 mb-4">Создатель комнаты завершил сессию</p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              Вернуться на главную
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex gap-[18px] p-6 xl:px-[122px] min-h-0 overflow-hidden">
+          <div className="flex-1 bg-white rounded-lg shadow-lg flex flex-col min-h-0 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-black leading-7">Чат</h2>
+            </div>
+            
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3"
+            >
+              {messages.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-sm text-gray-500">Нет сообщений</p>
+                </div>
+              ) : (
+                messages.map((m, i) => (
+                  <ChatMessage key={i} message={m} />
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            
+            <div className="px-6 pb-5 pt-3 flex-shrink-0">
+              <form onSubmit={sendMessage} className="flex items-center gap-2 border border-gray-300 rounded-lg overflow-hidden">
+                <input
+                  value={msg}
+                  onChange={e => setMsg(e.target.value)}
+                  placeholder="Введите сообщение..."
+                  className="flex-1 px-4 py-3 text-sm text-black placeholder-gray-400 outline-none"
+                  disabled={roomClosed || leaving}
+                />
+                <button
+                  type="submit"
+                  disabled={roomClosed || leaving || !msg.trim()}
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center bg-blue-600 rounded-lg mr-[2px] hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <SendIcon width={18} height={18} color="white" />
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="w-[280px] bg-white rounded-lg shadow-lg flex flex-col flex-shrink-0 min-h-0 overflow-hidden">
+            <div className="px-5 py-5 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-black leading-7">Участники</h2>
+            </div>
+            <div 
+              ref={participantsContainerRef}
+              className="flex-1 overflow-y-auto px-5 py-3"
+            >
+              <div className="flex flex-col gap-3">
+                {participants.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">Нет участников</p>
+                ) : (
+                  participants.map(p => {
+                    const isCurrentUser = p.userId === userId;
+                    const isRoomCreator = p.isCreator;
+
+                    return (
+                      <ParticipantItem
+                        key={p.sessionId}
+                        name={p.name}
+                        letter={(p.name || 'U').charAt(0).toUpperCase()}
+                        isCreator={isRoomCreator}
+                        isYou={isCurrentUser}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <GameSelectionModal
+          onClose={() => setShowSettings(false)}
+          onSelectGame={handleGameStart}
+          showToast={showToast}
+        />
+      )}
+
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        onSave={updateProfile}
+        showToast={showToast}
+      />
+    </div>
+  );
+}
+
+function ChatMessage({ message }) {
+  const isSystem = message.from?.name === 'Система';
+  const name = message.from?.name || 'Неизвестно';
+  const letter = name.charAt(0).toUpperCase();
+  const time = new Date(message.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  if (isSystem) {
+    return (
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-400">
+          <span className="text-white text-sm font-semibold">С</span>
+        </div>
+        <div className="flex flex-col gap-1 flex-1">
+          <p className="text-sm text-gray-500 italic">{message.text}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                  Комната: {roomId}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-8 h-8 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
-                    onClick={copyRoomId}
-                  >
-                    <CopyIcon className="w-4 h-4" />
-                  </Button>
-                </h1>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <Users className="w-4 h-4" />
-                    <span>{participants.length} участников</span>
-                  </div>
-                  {isCreator && (
-                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                      Создатель
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              {isCreator && !roomClosed && (
-                <Button
-                  onClick={startGame}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
-                >
-                  Начать игру
-                </Button>
-              )}
-              
-              {!roomClosed && !isCreator && (
-                <Button
-                  onClick={leaveRoom}
-                  variant="outline"
-                  disabled={leaving}
-                  className="border-2 border-yellow-500 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-xl font-semibold"
-                >
-                  {leaving ? 'Выходим...' : 'Выйти'}
-                </Button>
-              )}
-              
-              {isCreator && !roomClosed && (
-                <Button
-                  onClick={deleteRoom}
-                  className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-xl font-bold"
-                >
-                  Удалить комнату
-                </Button>
-              )}
-
-              <Link to="/">
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-300 rounded-xl border-gray-300 dark:border-gray-600"
-                >
-                  Главная
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {leaveError && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <AlertCircle className="w-4 h-4" />
-                <span>Ошибка: {leaveError}</span>
-              </div>
-            </div>
-          )}
+    <div className="flex items-start gap-3">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-500">
+        <span className="text-white text-sm font-semibold">{letter}</span>
+      </div>
+      <div className="flex flex-col gap-1 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-medium text-black">{name}</span>
+          <span className="text-xs text-gray-500">{time}</span>
         </div>
+        <p className="text-sm text-black leading-5 break-words">{message.text}</p>
+      </div>
+    </div>
+  );
+}
 
-        {roomClosed ? (
-          <div className="text-center py-12">
-            <div className="inline-block p-8 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl border-2 border-red-200 dark:border-red-800">
-              <h2 className="text-3xl font-bold text-red-600 dark:text-red-400 mb-4">
-                Комната закрыта
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Создатель комнаты завершил сессию
-              </p>
-              <Button
-                onClick={() => navigate('/')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl"
-              >
-                Вернуться на главную
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Чат */}
-            <div className="lg:col-span-2">
-              <Card className="h-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-6">
-                  <div className="flex items-center gap-3">
-                    <MessageSquare className="w-6 h-6" />
-                    <CardTitle className="text-2xl font-bold">Чат комнаты</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[400px] p-6">
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center py-12">
-                          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MessageSquare className="w-8 h-8 text-gray-400" />
-                          </div>
-                          <p className="text-gray-500 dark:text-gray-400">
-                            Начните общение! Напишите первое сообщение.
-                          </p>
-                        </div>
-                      ) : (
-                        messages.map((m, i) => (
-                          <div key={i} className="flex items-start gap-3">
-                            <Avatar className="w-10 h-10 border-2 border-white dark:border-gray-700">
-                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                                {(m.from?.name || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              {m.from?.name === 'Система' ? (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                                  {m.text}
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-bold text-gray-800 dark:text-white">
-                                      {m.from?.name}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {new Date(m.createdAt).toLocaleTimeString('ru-RU', { 
-                                        hour: '2-digit', 
-                                        minute: '2-digit' 
-                                      })}
-                                    </span>
-                                  </div>
-                                  <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
-                                    {m.text}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </ScrollArea>
-                  
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                    <form onSubmit={sendMessage} className="flex gap-2">
-                      <Input
-                        value={msg}
-                        onChange={e => setMsg(e.target.value)}
-                        placeholder="Напишите сообщение..."
-                        className="flex-1 h-12 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:border-blue-500 dark:focus:border-blue-400"
-                        disabled={roomClosed || leaving}
-                      />
-                      <Button 
-                        type="submit"
-                        size="icon"
-                        className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600"
-                        disabled={roomClosed || leaving || !msg.trim()}
-                      >
-                        <SendIcon className="w-5 h-5" />
-                      </Button>
-                    </form>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="h-full bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6">
-                  <div className="flex items-center gap-3">
-                    <Users className="w-6 h-6" />
-                    <CardTitle className="text-2xl font-bold">Участники</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-3">
-                    {participants.map(p => {
-                      const isCurrentUser = p.userId === userId;
-                      const isRoomCreator = p.isCreator;
-
-                      return (
-                        <div
-                          key={p.sessionId}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                            isCurrentUser 
-                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700'
-                              : 'bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarFallback className={
-                                isCurrentUser ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white" : 
-                                isRoomCreator ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white" : 
-                                "bg-gradient-to-r from-gray-400 to-gray-500 text-white"
-                              }>
-                                {(p.name || 'U').charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold text-gray-800 dark:text-white">
-                                {p.name}
-                              </p>
-                              {isRoomCreator && (
-                                <p className="text-xs text-blue-600 dark:text-blue-400">
-                                  Создатель комнаты
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {isCurrentUser && (
-                            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                              Вы
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })}
-                    
-                    {participants.length === 0 && (
-                      <div className="text-center py-8">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Users className="w-6 h-6 text-gray-400" />
-                        </div>
-                        <p className="text-gray-500 dark:text-gray-400">
-                          Нет участников
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+function ParticipantItem({ name, letter, isCreator, isYou }) {
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-500">
+        <span className="text-white text-sm font-semibold">{letter}</span>
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span className="text-sm font-medium text-black truncate">{name}</span>
+        {(isCreator || isYou) && (
+          <span className="text-xs text-gray-500">
+            {isCreator && isYou ? 'Создатель, Вы' : isCreator ? 'Создатель' : 'Вы'}
+          </span>
         )}
       </div>
     </div>
