@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import socket from "../socketClient";
 import ProfileModal from "./ProfileModal";
+import Header from "./Header";
 
 const API = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 
@@ -95,13 +96,17 @@ export default function HomePage({ showToast }) {
   }, [user?.id]);
 
   const handleRegister = async () => {
+    console.log("handleRegister called with:", authData);
     try {
       const res = await fetch(`${API}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
+      console.log("Register response status:", res.status);
       const data = await res.json();
+      console.log("Register response data:", data);
+      
       if (!res.ok) throw new Error(data.message || "Ошибка регистрации");
 
       Cookies.set("token", data.token, { expires: 7 });
@@ -111,19 +116,25 @@ export default function HomePage({ showToast }) {
       setName(data.user.username);
       setIsAuthChecked(true);
       checkActiveRoom(data.user.id);
+      console.log("Registration successful, user set:", data.user);
     } catch (err) {
+      console.error("Register error:", err);
       setError(err.message);
     }
   };
 
   const handleLogin = async () => {
+    console.log("handleLogin called with:", authData);
     try {
       const res = await fetch(`${API}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(authData),
       });
+      console.log("Login response status:", res.status);
       const data = await res.json();
+      console.log("Login response data:", data);
+      
       if (!res.ok) throw new Error(data.message || "Ошибка авторизации");
 
       Cookies.set("token", data.token, { expires: 7 });
@@ -133,7 +144,9 @@ export default function HomePage({ showToast }) {
       setName(data.user.username);
       setIsAuthChecked(true);
       checkActiveRoom(data.user.id);
+      console.log("Login successful, user set:", data.user);
     } catch (err) {
+      console.error("Login error:", err);
       setError(err.message);
     }
   };
@@ -143,6 +156,7 @@ export default function HomePage({ showToast }) {
     sessionStorage.removeItem("userName");
     sessionStorage.removeItem("userId");
     sessionStorage.removeItem("activeRoom");
+    sessionStorage.removeItem("isCreator");
     setUser({ username: "", id: null });
     setIsAuthChecked(true);
     setIsRegisterMode(false);
@@ -250,64 +264,90 @@ export default function HomePage({ showToast }) {
   };
 
   if (!Cookies.get('token') && isAuthChecked) {
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      console.log("Form submitted, isRegisterMode:", isRegisterMode);
+      
+      if (isRegisterMode) {
+        await handleRegister();
+      } else {
+        await handleLogin();
+      }
+    };
+
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-            <div className="bg-[#1E293B] p-6">
-              <h1 className="text-2xl font-bold text-white text-center tracking-tight">TableTime</h1>
-              <p className="text-[#94A3B8] text-sm text-center mt-1">
-                {isRegisterMode ? 'Создайте аккаунт' : 'Войдите, чтобы продолжить'}
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+        <div className="w-full max-w-[448px]">
+          <div className="rounded-lg overflow-hidden bg-white shadow-lg">
+            <div className="bg-[#00277D] px-6 py-6 flex flex-col items-center gap-1">
+              <h1 className="text-white text-2xl font-bold text-center">TableTime</h1>
+              <p className="text-gray-300 text-base text-center">
+                {isRegisterMode ? 'Создайте аккаунт' : 'Вход в аккаунт'}
               </p>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-[#1E293B]">Имя пользователя</label>
-                <input
-                  type="text"
-                  value={authData.username}
-                  onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-                  className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
-                  placeholder="Введите имя"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-[#1E293B]">Пароль</label>
-                <input
-                  type="password"
-                  value={authData.password}
-                  onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-                  className="w-full h-10 px-3 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
-                  placeholder="Введите пароль"
-                />
-              </div>
-
-              {error && (
-                <div className="p-2 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-red-600 text-xs text-center">{error}</p>
+            <div className="px-6 py-6 flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-700 text-sm font-medium">Имя пользователя</label>
+                  <input
+                    type="text"
+                    value={authData.username}
+                    onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
+                    placeholder="Введите имя пользователя"
+                    autoComplete="username"
+                    required
+                    className="w-full px-3 py-2.5 rounded-md border border-gray-300 bg-white text-base text-gray-900 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
                 </div>
-              )}
 
-              <button
-                onClick={isRegisterMode ? handleRegister : handleLogin}
-                className="w-full h-10 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-medium rounded-md transition-colors"
-              >
-                {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
-              </button>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-gray-700 text-sm font-medium">Пароль</label>
+                  <input
+                    type="password"
+                    value={authData.password}
+                    onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
+                    placeholder="Введите пароль"
+                    autoComplete={isRegisterMode ? "new-password" : "current-password"}
+                    required
+                    className="w-full px-3 py-2.5 rounded-md border border-gray-300 bg-white text-base text-gray-900 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
 
-              <div className="text-center pt-3 border-t border-[#E2E8F0]">
-                <p className="text-xs text-[#64748B]">
-                  {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
-                </p>
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-red-600 text-sm text-center">{error}</p>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => setIsRegisterMode(!isRegisterMode)}
-                  className="text-[#3B82F6] hover:text-[#2563EB] text-sm font-medium transition-colors mt-1"
+                  type="submit"
+                  className="w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-sm font-medium tracking-wider py-2.5 rounded-md transition-colors uppercase"
                 >
-                  {isRegisterMode ? 'Войти' : 'Создать аккаунт'}
+                  {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
                 </button>
+              </form>
+
+              <div className="flex items-center gap-3 my-1">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-gray-400 text-sm">или</span>
+                <div className="flex-1 h-px bg-gray-200" />
               </div>
+
+              <p className="text-center text-gray-700 text-sm">
+                {isRegisterMode ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegisterMode(!isRegisterMode);
+                    setError('');
+                    setAuthData({ username: '', password: '' });
+                  }}
+                  className="text-[#2563EB] font-medium hover:underline"
+                >
+                  {isRegisterMode ? 'Войти' : 'Зарегистрироваться'}
+                </button>
+              </p>
             </div>
           </div>
         </div>
@@ -316,109 +356,112 @@ export default function HomePage({ showToast }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-lg border border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="bg-[#1E293B] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">TableTime</h1>
-                <p className="text-[#94A3B8] text-xs mt-0.5">Игра в слова онлайн</p>
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <Header user={user} onProfileClick={() => setIsProfileOpen(true)} onLogout={handleLogout} />
+
+      <main className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-[466px] bg-white rounded-lg shadow-lg p-6">
+          {activeRoom ? (
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-2 w-full">
+                <h2 className="text-black font-semibold text-xl text-center">
+                  Добро пожаловать, {name}!
+                </h2>
+                <p className="text-gray-600 text-sm text-center">
+                  У вас есть активная комната
+                </p>
               </div>
-              <button
-                onClick={() => setIsProfileOpen(true)}
-                className="px-3 py-1.5 bg-[#2D3A4F] hover:bg-[#3B4A63] text-white text-xs font-medium rounded-md transition-colors"
-              >
-                Профиль
-              </button>
-            </div>
-          </div>
 
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <h2 className="text-base font-medium text-[#1E293B]">
-                Добро пожаловать, <span className="text-[#3B82F6] font-semibold">{name}</span>!
-              </h2>
-              <p className="text-xs text-[#64748B] mt-1">
-                {activeRoom
-                  ? 'У вас есть активная комната'
-                  : 'Создайте комнату или присоединитесь к существующей'}
-              </p>
-            </div>
-
-            {activeRoom ? (
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-md p-4">
+              <div className="w-full flex flex-col items-center gap-2.5 px-6 py-[18px] rounded-lg border-2 border-gray-200 bg-gray-50">
                 <button
                   onClick={goToActiveRoom}
-                  className="w-full h-10 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-medium rounded-md transition-colors"
+                  className="w-full py-2 px-5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white text-base font-medium rounded-md transition-colors uppercase tracking-wide"
                 >
                   Вернуться в комнату
                 </button>
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E2E8F0]">
-                  <p className="text-xs text-[#64748B]">Активная комната:</p>
-                  <div className="px-2 py-1 bg-white border border-[#E2E8F0] rounded font-mono text-xs text-[#1E293B]">
+                <div className="flex flex-col items-center gap-1 w-full">
+                  <p className="text-gray-600 text-sm text-center">
+                    Активная комната:
+                  </p>
+                  <p className="text-black font-semibold text-lg text-center">
                     {activeRoom}
-                  </div>
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <button
-                  onClick={createRoom}
-                  className="w-full h-11 bg-[#10B981] hover:bg-[#059669] text-white text-sm font-medium rounded-md transition-colors"
-                >
-                  Создать комнату
-                </button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#E2E8F0]"></div>
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="px-2 bg-white text-[#64748B]">или</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-[#1E293B]">Присоединиться по ID</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Введите ID комнаты"
-                      value={roomId}
-                      onChange={(e) => setRoomId(e.target.value)}
-                      className="flex-1 h-10 px-3 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
-                    />
-                    <button
-                      onClick={joinById}
-                      className="px-4 h-10 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-sm font-medium rounded-md transition-colors"
-                    >
-                      Войти
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 pt-4 border-t border-[#E2E8F0] text-center">
               <button
                 onClick={handleLogout}
-                className="text-[#EF4444] hover:text-[#DC2626] text-xs font-medium transition-colors"
+                className="w-full py-2 px-5 bg-white hover:bg-gray-50 rounded-md border border-gray-300 text-black text-base font-medium transition-colors"
               >
                 Выйти из аккаунта
               </button>
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-2 w-full">
+                <h2 className="text-black font-semibold text-xl text-center">
+                  Добро пожаловать, {name}!
+                </h2>
+                <p className="text-gray-600 text-sm text-center">
+                  Создайте или присоединитесь к комнате
+                </p>
+              </div>
 
-        <ProfileModal
-          isOpen={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          user={user}
-          onSave={updateProfile}
-          showToast={showToast}
-        />
-      </div>
+              <button
+                onClick={createRoom}
+                className="w-full py-2 px-5 bg-[#16A34A] hover:bg-[#15803d] text-white text-base font-medium rounded-md transition-colors uppercase tracking-wide"
+              >
+                Создать комнату
+              </button>
+
+              <div className="relative flex items-center w-full">
+                <div className="flex-1 h-px bg-gray-300" />
+                <span className="px-2 bg-white text-gray-500 text-xs uppercase">
+                  или
+                </span>
+                <div className="flex-1 h-px bg-gray-300" />
+              </div>
+
+              <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-gray-700 text-sm font-medium">
+                  Присоединиться по ID
+                </label>
+                <div className="flex items-center gap-1.5 w-full">
+                  <input
+                    type="text"
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    placeholder="Введите ID комнаты"
+                    className="flex-1 px-3 py-2.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    onKeyDown={(e) => e.key === "Enter" && joinById(e)}
+                  />
+                  <button
+                    onClick={joinById}
+                    className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1d4ed8] rounded-md text-white text-sm font-medium transition-colors whitespace-nowrap"
+                  >
+                    Войти
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full py-2 px-5 bg-white hover:bg-gray-50 rounded-md border border-gray-300 text-black text-base font-medium transition-colors"
+              >
+                Выйти из аккаунта
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        onSave={updateProfile}
+        showToast={showToast}
+      />
     </div>
   );
 }
